@@ -3,217 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UltraPlayer Pro - 豆瓣增强版</title>
-    
+    <title>UltraTV - 豆瓣海报墙版</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
-        :root {
-            --primary-color: #00b358; /* 豆瓣绿 */
-            --bg-color: #121212;
+        :root { --green: #00b358; --dark: #0f0f0f; --card: #1e1e1e; }
+        body { margin: 0; background: var(--dark); color: white; font-family: sans-serif; overflow-x: hidden; }
+        
+        /* 播放器固定在顶部 */
+        .video-container { 
+            position: sticky; top: 0; z-index: 100; 
+            background: #000; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.8);
         }
+        .video-js { width: 100%; max-height: 50vh; margin: 0 auto; }
 
-        body {
-            font-family: -apple-system, sans-serif;
-            background-color: var(--bg-color);
-            color: white;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            background-size: cover;
-            background-position: center;
-            transition: background 0.5s ease-in-out;
-        }
+        .content { padding: 20px; }
+        
+        /* 订阅导入区 */
+        .import-box { display: flex; gap: 10px; margin-bottom: 30px; }
+        input { flex: 1; background: #222; border: 1px solid #444; color: white; padding: 12px; border-radius: 8px; }
+        button { background: var(--green); color: white; border: none; padding: 0 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
 
-        /* 模糊背景罩 */
-        body::before {
-            content: "";
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.8);
-            z-index: -1;
-        }
-
-        .container {
-            width: 95%;
-            max-width: 1100px;
-            padding: 20px;
-        }
-
-        /* 布局控制 */
-        .main-layout {
+        /* 海报墙布局 */
+        .poster-grid {
             display: grid;
-            grid-template-columns: 1fr 300px;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 20px;
-            margin-top: 20px;
         }
 
-        @media (max-width: 800px) {
-            .main-layout { grid-template-columns: 1fr; }
-        }
-
-        .video-wrapper {
-            background: #000;
-            border-radius: 12px;
+        .movie-card {
+            background: var(--card);
+            border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
-        /* 豆瓣信息卡片 */
-        .info-card {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .poster {
-            width: 100%;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
-        }
-
-        .rating { color: #ffb400; font-size: 1.5em; font-weight: bold; }
-        .movie-title { font-size: 1.2em; margin: 10px 0; }
-        .summary { font-size: 0.85em; color: #ccc; line-height: 1.6; max-height: 200px; overflow-y: auto; }
-
-        /* 输入区域 */
-        .controls-card {
-            background: #2a2a2a;
-            padding: 20px;
-            border-radius: 12px;
-            margin-top: 20px;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        input[type="text"] {
-            flex: 1;
-            padding: 12px;
-            border-radius: 6px;
-            border: 1px solid #444;
-            background: #333;
-            color: white;
-            outline: none;
-        }
-
-        button {
-            padding: 10px 20px;
-            border-radius: 6px;
-            border: none;
-            background: var(--primary-color);
-            color: white;
+            transition: transform 0.3s;
             cursor: pointer;
-            font-weight: bold;
+            position: relative;
+        }
+        .movie-card:hover { transform: scale(1.05); z-index: 2; border: 2px solid var(--green); }
+        
+        .poster-img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #333; }
+        .movie-info { padding: 8px; font-size: 0.85rem; text-align: center; }
+        .rating-tag { 
+            position: absolute; top: 5px; right: 5px; 
+            background: rgba(0,0,0,0.7); color: #ffb400; 
+            padding: 2px 5px; border-radius: 4px; font-size: 0.7rem;
+        }
+
+        @media (min-width: 800px) {
+            .poster-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header style="text-align: center;">
-        <h1>UltraPlayer Pro</h1>
-    </header>
+<div class="video-container">
+    <video id="player" class="video-js vjs-big-play-centered" controls preload="auto"></video>
+</div>
 
-    <div class="main-layout">
-        <div class="video-wrapper">
-            <video id="my-video" class="video-js vjs-big-play-centered" controls preload="auto">
-                <p class="vjs-no-js">需开启 JavaScript</p>
-            </video>
-        </div>
-
-        <div class="info-card" id="movie-info">
-            <img id="m-poster" class="poster" src="https://via.placeholder.com/300x450?text=Waiting..." alt="海报">
-            <div class="rating" id="m-rating">--</div>
-            <div class="movie-title" id="m-title">等待输入视频源...</div>
-            <div class="summary" id="m-summary">自动匹配豆瓣数据，实时显示详情。</div>
-        </div>
+<div class="content">
+    <div class="import-box">
+        <input type="text" id="m3u-url" placeholder="粘贴 M3U 订阅链接 (例如: http://xxx.com/list.m3u)">
+        <button onclick="loadM3U()">解析列表</button>
     </div>
 
-    <div class="controls-card">
-        <label>视频/订阅地址 (m3u8):</label>
-        <div class="input-group">
-            <input type="text" id="url-input" placeholder="输入 m3u8 地址，程序将自动尝试匹配片名" />
-            <button onclick="handlePlay()">立即播放</button>
+    <h2 id="list-title">影片库</h2>
+    <div class="poster-grid" id="poster-grid">
         </div>
-    </div>
 </div>
 
 <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
-
 <script>
-    const player = videojs('my-video', { fluid: true });
-    
-    // 初始化
-    window.onload = () => {
-        const lastUrl = localStorage.getItem('last_url');
-        if(lastUrl) {
-            document.getElementById('url-input').value = lastUrl;
-            handlePlay(lastUrl);
-        }
-    }
+    const player = videojs('player', { fluid: true });
+    const grid = document.getElementById('poster-grid');
 
-    async function handlePlay() {
-        const url = document.getElementById('url-input').value.trim();
-        if(!url) return;
-        
-        localStorage.setItem('last_url', url);
-        
-        // 1. 播放视频
-        player.src({ src: url, type: 'application/x-mpegURL' });
-        player.play();
+    // 1. 加载并解析 M3U
+    async function loadM3U() {
+        const url = document.getElementById('m3u-url').value.trim();
+        if(!url) return alert("请输入 M3U 链接");
 
-        // 2. 尝试从 URL 提取标题并匹配豆瓣
-        const fileName = url.split('/').pop().split('?')[0].replace('.m3u8', '');
-        const decodedName = decodeURIComponent(fileName);
-        fetchMovieData(decodedName);
-    }
-
-    // 豆瓣匹配逻辑 (使用 wmdb 开放接口)
-    async function fetchMovieData(keyword) {
-        document.getElementById('m-title').innerText = "正在匹配: " + keyword;
+        grid.innerHTML = "<p>正在解析订阅并匹配豆瓣海报...</p>";
         
         try {
-            // 注意：这里使用 wmdb 提供的搜索接口，它可以返回豆瓣数据
-            const response = await fetch(`https://api.wmdb.tv/api/v1/movie/search?q=${keyword}`);
-            const data = await response.json();
-            
-            if(data && data.length > 0) {
-                const movie = data[0]; // 取第一个最相关的
-                updateUI(movie);
-            } else {
-                document.getElementById('m-title').innerText = "未找到豆瓣匹配";
-            }
-        } catch (e) {
-            console.log("数据获取失败", e);
+            const resp = await fetch(url);
+            const text = await resp.text();
+            const channels = parseM3U(text);
+            renderGrid(channels);
+        } catch (err) {
+            alert("加载失败，请检查链接或跨域(CORS)限制");
         }
     }
 
-    function updateUI(movie) {
-        document.getElementById('m-title').innerText = movie.original_title || movie.alias;
-        document.getElementById('m-rating').innerText = "⭐ " + (movie.doubanRating || "N/A");
-        document.getElementById('m-summary').innerText = movie.description || "暂无简介";
-        
-        // 替换高质量海报地址
-        const posterUrl = movie.data[0].poster;
-        document.getElementById('m-poster').src = posterUrl;
-        
-        // 动态更换全屏背景
-        document.body.style.backgroundImage = `url('${posterUrl}')`;
+    // 2. M3U 解析器
+    function parseM3U(content) {
+        const lines = content.split('\n');
+        const channels = [];
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].startsWith('#EXTINF')) {
+                const name = lines[i].split(',').pop().trim();
+                const url = lines[i + 1]?.trim();
+                if (url && url.startsWith('http')) {
+                    channels.push({ name, url });
+                }
+            }
+        }
+        return channels;
     }
 
-    // 回车播放
-    document.getElementById('url-input').addEventListener("keypress", (e) => {
-        if (e.key === "Enter") handlePlay();
-    });
-</script>
+    // 3. 渲染海报墙并匹配数据
+    function renderGrid(channels) {
+        grid.innerHTML = "";
+        channels.forEach(ch => {
+            const card = document.createElement('div');
+            card.className = 'movie-card';
+            card.innerHTML = `
+                <img class="poster-img" data-name="${ch.name}" src="https://via.placeholder.com/200x300?text=${encodeURIComponent(ch.name)}">
+                <div class="rating-tag" id="rate-${ch.name}">--</div>
+                <div class="movie-info">${ch.name}</div>
+            `;
+            card.onclick = () => {
+                player.src({ src: ch.url, type: 'application/x-mpegURL' });
+                player.play();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+            grid.appendChild(card);
+            
+            // 异步获取豆瓣数据，不阻塞页面渲染
+            matchDouban(ch.name, card.querySelector('img'), card.querySelector('.rating-tag'));
+        });
+    }
 
+    // 4. 豆瓣数据匹配
+    async function matchDouban(name, imgEl, rateEl) {
+        try {
+            const searchName = name.replace(/\s/g, '').split('-')[0]; // 简单清洗名称
+            const resp = await fetch(`https://api.wmdb.tv/api/v1/movie/search?q=${encodeURIComponent(searchName)}`);
+            const data = await resp.json();
+            if (data && data.length > 0) {
+                const movie = data[0];
+                imgEl.src = movie.data[0].poster;
+                rateEl.innerText = movie.doubanRating || "N/A";
+            }
+        } catch (e) { /* 忽略错误 */ }
+    }
+</script>
 </body>
 </html>
