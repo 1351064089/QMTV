@@ -3,248 +3,263 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="referrer" content="no-referrer"> <title>UltraVision X | 聚合搜索与豆瓣增强</title>
+    <meta name="referrer" content="no-referrer">
+    <title>UltraVision OS | 聚合影院</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
-        :root { --main: #ff5c38; --bg: #0a0a0a; --panel: #161616; --card: #202020; }
-        body { margin: 0; background: var(--bg); color: #eee; font-family: sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        :root { --main: #ff5c38; --bg: #050505; --panel: #121212; --card: #1c1c1c; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: "PingFang SC", sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+        /* 顶部导航与分类 */
+        header { background: #000; border-bottom: 1px solid #222; z-index: 100; }
+        .nav-top { display: flex; align-items: center; padding: 10px 25px; gap: 20px; }
+        .logo { font-size: 22px; font-weight: bold; color: var(--main); min-width: 150px; }
+        .search-box { flex: 1; position: relative; }
+        .search-box input { width: 100%; background: #1a1a1a; border: 1px solid #333; color: white; padding: 10px 40px 10px 20px; border-radius: 20px; outline: none; }
         
-        /* 侧边栏：订阅管理 */
-        .sidebar { width: 300px; background: var(--panel); border-right: 1px solid #222; display: flex; flex-direction: column; }
-        .sidebar-box { padding: 15px; border-bottom: 1px solid #222; }
-        .sidebar-box input { width: 100%; background: #222; border: 1px solid #333; color: #fff; padding: 8px; margin-bottom: 5px; box-sizing: border-box; }
+        .nav-categories { display: flex; gap: 30px; padding: 10px 25px; background: #0a0a0a; }
+        .cat-item { cursor: pointer; color: #888; font-size: 15px; transition: 0.3s; padding-bottom: 5px; border-bottom: 2px solid transparent; }
+        .cat-item:hover, .cat-item.active { color: var(--main); border-bottom-color: var(--main); }
+
+        /* 主体布局 */
+        .wrapper { flex: 1; display: flex; overflow: hidden; }
+        
+        /* 左侧管理栏 */
+        .source-side { width: 260px; background: var(--panel); border-right: 1px solid #222; display: flex; flex-direction: column; }
+        .add-source { padding: 15px; border-bottom: 1px solid #222; font-size: 13px; }
+        .add-source input { width: 100%; background: #222; border: 1px solid #333; color: #fff; padding: 6px; margin-bottom: 8px; border-radius: 4px; }
         .source-list { flex: 1; overflow-y: auto; padding: 10px; }
-        .source-item { background: #222; padding: 10px; margin-bottom: 8px; border-radius: 6px; font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; }
-        .source-item:hover { border: 1px solid var(--main); }
-        .source-item.active { background: var(--main); }
+        .s-item { padding: 10px; background: #1a1a1a; margin-bottom: 8px; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; justify-content: space-between; }
+        .s-item:hover { border: 1px solid var(--main); }
 
-        /* 主界面 */
-        .main { flex: 1; display: flex; flex-direction: column; }
-        .search-nav { padding: 15px 30px; background: #000; display: flex; gap: 10px; border-bottom: 1px solid #222; }
-        .search-nav input { flex: 1; background: #1a1a1a; border: 1px solid #333; color: white; padding: 10px 20px; border-radius: 25px; outline: none; }
+        /* 视频展示区 */
+        .main-view { flex: 1; overflow-y: auto; padding: 20px; scroll-behavior: smooth; }
+        .section-title { font-size: 20px; margin: 20px 0; display: flex; align-items: center; gap: 10px; }
+        .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; margin-bottom: 40px; }
         
-        /* 内容区 */
-        .content { flex: 1; overflow-y: auto; padding: 25px; }
-        .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 25px; }
-        .movie-card { background: var(--card); border-radius: 12px; overflow: hidden; cursor: pointer; transition: 0.3s; position: relative; }
-        .movie-card:hover { transform: translateY(-8px); }
-        .movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
-        .movie-card .rating { position: absolute; top: 10px; right: 10px; background: rgba(255,92,56,0.9); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-        .movie-card .info { padding: 10px; }
-        .movie-card .info .t { font-size: 14px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .movie-card .info .s { font-size: 12px; color: #888; margin-top: 4px; }
+        /* 影片卡片 */
+        .card { background: var(--card); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s; position: relative; }
+        .card:hover { transform: scale(1.05); z-index: 5; }
+        .card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
+        .card .rate { position: absolute; top: 8px; right: 8px; background: var(--main); font-size: 11px; padding: 2px 5px; border-radius: 4px; font-weight: bold; }
+        .card .info { padding: 10px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* 播放器全屏层 */
-        #play-layer { position: fixed; inset: 0; background: #000; z-index: 1000; display: none; grid-template-columns: 1fr 380px; }
-        .video-box { position: relative; background: #000; display: flex; flex-direction: column; }
-        .playlist-box { background: #111; padding: 20px; border-left: 1px solid #222; overflow-y: auto; }
-        .back-btn { position: absolute; top: 20px; left: 20px; z-index: 10; cursor: pointer; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 20px; }
-        
-        .tab-menu { display: flex; border-bottom: 1px solid #333; margin-bottom: 15px; }
-        .tab-btn { padding: 10px; cursor: pointer; font-size: 14px; color: #888; }
-        .tab-btn.active { color: var(--main); border-bottom: 2px solid var(--main); }
-        .ep-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; }
-        .ep-item { background: #222; border: 1px solid #333; color: #ccc; padding: 8px; text-align: center; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        .ep-item.active { background: var(--main); color: white; border-color: var(--main); }
-        
-        .loading { text-align: center; padding: 50px; color: var(--main); font-weight: bold; }
+        /* 播放模态层 */
+        #player-layer { position: fixed; inset: 0; background: #000; z-index: 2000; display: none; grid-template-columns: 1fr 350px; }
+        .player-side { position: relative; }
+        .list-side { background: #111; padding: 20px; overflow-y: auto; border-left: 1px solid #222; }
+        .close-layer { position: absolute; top: 15px; left: 15px; z-index: 2100; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 20px; cursor: pointer; }
+        .ep-btn { background: #222; border: 1px solid #333; color: #ccc; padding: 10px; margin: 5px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .ep-btn.active { background: var(--main); color: white; }
     </style>
 </head>
 <body>
 
-<aside class="sidebar">
-    <div class="sidebar-header" style="padding:20px; font-size:22px; color:var(--main); font-weight:bold;">UltraVision X</div>
-    <div class="sidebar-box">
-        <input type="text" id="src-name" placeholder="源名称 (如: 茅台资源)">
-        <input type="text" id="src-url" placeholder="JSON 接口地址">
-        <button onclick="saveSource()" style="width:100%; background:var(--main); border:none; color:white; padding:8px; border-radius:4px; cursor:pointer;">添加订阅</button>
-    </div>
-    <div class="source-list" id="source-list"></div>
-</aside>
-
-<main class="main">
-    <div class="search-nav">
-        <input type="text" id="search-kw" placeholder="聚合搜索全网资源，匹配豆瓣详情..." onkeypress="if(event.keyCode==13) aggregateSearch()">
-        <button onclick="aggregateSearch()" style="background:var(--main); border:none; color:white; padding:0 25px; border-radius:25px; cursor:pointer;">聚合搜索</button>
-    </div>
-    <div class="content">
-        <div class="movie-grid" id="main-grid">
-            </div>
-    </div>
-</main>
-
-<div id="play-layer">
-    <div class="back-btn" onclick="closePlayer()">✕ 退出播放</div>
-    <div class="video-box">
-        <div style="flex:1; background:#000;">
-            <video id="vjs-player" class="video-js vjs-big-play-centered" controls preload="auto" style="width:100%; height:100%;"></video>
+<header>
+    <div class="nav-top">
+        <div class="logo">UltraVision OS</div>
+        <div class="search-box">
+            <input type="text" id="main-search" placeholder="搜索电影、电视剧、动漫..." onkeypress="if(event.keyCode==13) doSearch()">
         </div>
-        <div style="padding:25px; background:var(--panel);">
-            <h1 id="v-title" style="margin:0; font-size:26px;"></h1>
-            <div id="v-meta" style="color:var(--main); margin:10px 0; font-weight:bold;"></div>
-            <p id="v-desc" style="color:#aaa; font-size:14px; line-height:1.6; max-height:100px; overflow-y:auto;"></p>
+        <div id="user-status" style="font-size: 13px; color: #666;">网络状态: <span id="ping-val">检测中</span></div>
+    </div>
+    <div class="nav-categories" id="cat-nav">
+        <div class="cat-item active" onclick="loadHome('all')">首页精选</div>
+        <div class="cat-item" onclick="loadHome('movie')">电影</div>
+        <div class="cat-item" onclick="loadHome('tv')">电视剧</div>
+        <div class="cat-item" onclick="loadHome('variety')">综艺</div>
+        <div class="cat-item" onclick="loadHome('anime')">动漫</div>
+        <div class="cat-item" onclick="loadHome('live')">电视直播</div>
+    </div>
+</header>
+
+<div class="wrapper">
+    <aside class="source-side">
+        <div class="add-source">
+            <input type="text" id="new-src-name" placeholder="名称 (留空自动识别)">
+            <input type="text" id="new-src-url" placeholder="贴入订阅地址 (JSON/M3U)">
+            <button onclick="addSource()" style="width:100%; background:var(--main); border:none; color:#fff; padding:8px; border-radius:4px; cursor:pointer;">立即导入源</button>
+        </div>
+        <div class="source-list" id="s-list"></div>
+    </aside>
+
+    <main class="main-view" id="main-view">
+        <div id="home-content">
+            <div class="section-title">今日推荐 (豆瓣实时)</div>
+            <div class="movie-grid" id="grid-recommend"></div>
+        </div>
+    </main>
+</div>
+
+<div id="player-layer">
+    <div class="close-layer" onclick="closePlayer()">✕ 退出播放</div>
+    <div class="player-side">
+        <video id="main-player" class="video-js vjs-big-play-centered" controls preload="auto" style="width:100%; height:100%;"></video>
+        <div id="p-info" style="padding:20px;">
+            <h1 id="p-title" style="margin:0"></h1>
+            <p id="p-desc" style="color:#888; font-size:14px;"></p>
         </div>
     </div>
-    <div class="playlist-box">
-        <h3>路线与选集</h3>
-        <div class="tab-menu" id="line-tabs"></div>
-        <div class="ep-list" id="ep-list"></div>
+    <div class="list-side">
+        <h3>选集与线路</h3>
+        <div id="p-line" style="margin-bottom:15px; display:flex; gap:10px;"></div>
+        <div id="p-eps" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;"></div>
     </div>
 </div>
 
 <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 <script>
-    const player = videojs('vjs-player', { fluid: false });
-    let sources = JSON.parse(localStorage.getItem('uv_sources') || '[]');
+    const player = videojs('main-player', { fluid: false });
+    let uvSources = JSON.parse(localStorage.getItem('uv_sources_v4') || '[]');
 
-    function saveSource() {
-        const name = document.getElementById('src-name').value;
-        const url = document.getElementById('src-url').value;
-        if(name && url) {
-            sources.push({ name, url });
-            localStorage.setItem('uv_sources', JSON.stringify(sources));
-            renderSources();
+    // 1. 初始化
+    window.onload = () => {
+        renderSourceList();
+        loadHome('all');
+    };
+
+    // 2. 首页分类加载 (豆瓣数据)
+    async function loadHome(type) {
+        document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('active'));
+        event.target.classList?.add('active');
+
+        const grid = document.getElementById('grid-recommend');
+        grid.innerHTML = '<div style="grid-column:1/-1; color:var(--main);">正在拉取豆瓣最新资源...</div>';
+
+        try {
+            // 模拟豆瓣热映数据 (实际开发中可对接豆瓣开放接口或爬虫API)
+            const resp = await fetch(`https://api.wmdb.tv/api/v1/top?type=${type === 'all' ? 'Movie' : type}&skip=0&limit=24`);
+            const data = await resp.json();
+            grid.innerHTML = '';
+            data.forEach(m => {
+                const card = createCard({
+                    id: m.imdbId,
+                    name: m.data[0].name,
+                    pic: m.data[0].poster,
+                    rate: m.doubanRating || 'N.A',
+                    remarks: m.data[0].genre
+                });
+                grid.appendChild(card);
+            });
+        } catch(e) {
+            grid.innerHTML = '首页数据加载失败，请检查网络或点击左侧源进行搜索。';
         }
     }
 
-    function renderSources() {
-        const list = document.getElementById('source-list');
+    // 3. 订阅源管理 (自动识别)
+    function addSource() {
+        const url = document.getElementById('new-src-url').value;
+        let name = document.getElementById('new-src-name').value;
+        
+        if(!url) return alert('请输入地址');
+        
+        // 自动识别名称逻辑
+        if(!name) {
+            if(url.includes('maotai')) name = '茅台资源';
+            else if(url.includes('wolong')) name = '卧龙资源';
+            else name = '自定义源 ' + (uvSources.length + 1);
+        }
+
+        uvSources.push({ name, url });
+        localStorage.setItem('uv_sources_v4', JSON.stringify(uvSources));
+        renderSourceList();
+    }
+
+    function renderSourceList() {
+        const list = document.getElementById('s-list');
         list.innerHTML = '';
-        sources.forEach((s, i) => {
+        uvSources.forEach((s, i) => {
             const div = document.createElement('div');
-            div.className = 'source-item';
-            div.innerHTML = `<span>${s.name}</span> <span onclick="deleteSource(${i})" style="color:#666">删除</span>`;
-            div.onclick = (e) => { if(e.target.innerText!=='删除') loadFromSource(s.url); };
+            div.className = 's-item';
+            div.innerHTML = `<span>${s.name}</span> <span onclick="delSrc(${i})" style="color:#444">✕</span>`;
+            div.onclick = (e) => { if(e.target.innerText!=='✕') loadSourceContent(s.url); };
             list.appendChild(div);
         });
     }
 
-    function deleteSource(i) {
-        sources.splice(i, 1);
-        localStorage.setItem('uv_sources', JSON.stringify(sources));
-        renderSources();
-    }
-
-    // 核心：聚合搜索并联动豆瓣
-    async function aggregateSearch() {
-        const kw = document.getElementById('search-kw').value.trim();
+    // 4. 搜索逻辑 (聚合)
+    async function doSearch() {
+        const kw = document.getElementById('main-search').value;
         if(!kw) return;
-        const grid = document.getElementById('main-grid');
-        grid.innerHTML = '<div class="loading">正在检索全网资源并匹配豆瓣数据...</div>';
+        const grid = document.getElementById('grid-recommend');
+        grid.innerHTML = '<div style="grid-column:1/-1;">正在全网扫描中...</div>';
 
-        // 1. 聚合抓取资源站数据
-        const promises = sources.map(s => 
-            fetch(`${s.url}?ac=detail&wd=${encodeURIComponent(kw)}`).then(r => r.json()).catch(() => ({list:[]}))
+        const searchPromises = uvSources.map(s => 
+            fetch(`${s.url}?ac=detail&wd=${encodeURIComponent(kw)}`).then(r => r.json()).catch(()=>({list:[]}))
         );
-        const results = await Promise.all(promises);
+        const results = await Promise.all(searchPromises);
         grid.innerHTML = '';
-
-        // 2. 合并结果并去重显示
-        let combined = [];
-        results.forEach(res => { if(res.list) combined = [...combined, ...res.list]; });
-
-        if(combined.length === 0) {
-            grid.innerHTML = '<div>未找到相关资源，请检查订阅源或关键词。</div>';
-            return;
-        }
-
-        combined.forEach(item => renderMovieCard(item));
+        results.forEach(res => {
+            if(res.list) res.list.forEach(item => {
+                grid.appendChild(createCard({
+                    id: item.vod_id,
+                    name: item.vod_name,
+                    pic: item.vod_pic,
+                    rate: item.vod_score || '7.0',
+                    remarks: item.vod_remarks,
+                    fullData: item
+                }));
+            });
+        });
     }
 
-    // 渲染卡片并实时抓取豆瓣评分/海报
-    async function renderMovieCard(item) {
-        const grid = document.getElementById('main-grid');
-        const card = document.createElement('div');
-        card.className = 'movie-card';
-        // 初始显示资源站图片
-        card.innerHTML = `
-            <div class="rating" id="rate-${item.vod_id}">--</div>
-            <img src="${item.vod_pic}" referrerpolicy="no-referrer" id="img-${item.vod_id}">
-            <div class="info">
-                <div class="t">${item.vod_name}</div>
-                <div class="s">${item.vod_remarks || '高清'}</div>
-            </div>
+    // 5. 通用卡片创建
+    function createCard(m) {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `
+            <div class="rate">${m.rate}</div>
+            <img src="${m.pic}" referrerpolicy="no-referrer">
+            <div class="info">${m.name}</div>
         `;
-        card.onclick = () => openPlayer(item);
-        grid.appendChild(card);
-
-        // 异步尝试豆瓣匹配增强
-        try {
-            const dbRes = await fetch(`https://api.wmdb.tv/api/v1/movie/search?q=${encodeURIComponent(item.vod_name)}`);
-            const dbData = await dbRes.json();
-            if(dbData && dbData.length > 0) {
-                const bestMatch = dbData[0];
-                document.getElementById(`rate-${item.vod_id}`).innerText = bestMatch.doubanRating || "7.0";
-                document.getElementById(`img-${item.vod_id}`).src = bestMatch.data[0].poster;
-                item.dbData = bestMatch; // 存入详情使用
+        div.onclick = () => {
+            if(m.fullData) openPlayer(m.fullData);
+            else { // 首页点击去搜索该片
+                document.getElementById('main-search').value = m.name;
+                doSearch();
             }
-        } catch(e){}
+        };
+        return div;
     }
 
-    // 3. 播放器逻辑：处理选集与换源
+    // 6. 播放器增强解析
     function openPlayer(item) {
-        document.getElementById('play-layer').style.display = 'grid';
-        document.getElementById('v-title').innerText = item.vod_name;
-        document.getElementById('v-desc').innerText = item.dbData?.description || item.vod_content.replace(/<[^>]+>/g, '');
-        document.getElementById('v-meta').innerText = `豆瓣评分: ${item.dbData?.doubanRating || '7.0'} / 分类: ${item.vod_type_name}`;
+        document.getElementById('player-layer').style.display = 'grid';
+        document.getElementById('p-title').innerText = item.vod_name;
+        document.getElementById('p-desc').innerText = item.vod_content.replace(/<[^>]+>/g, '');
+        
+        const lineBox = document.getElementById('p-line');
+        const epBox = document.getElementById('p-eps');
+        lineBox.innerHTML = ''; epBox.innerHTML = '';
 
-        const tabMenu = document.getElementById('line-tabs');
-        const epList = document.getElementById('ep-list');
-        tabMenu.innerHTML = '';
-        epList.innerHTML = '';
-
-        // 解析资源站的多线路 ($$$ 分割)
         const lines = item.vod_play_url.split('$$$');
-        lines.forEach((lineData, index) => {
-            const btn = document.createElement('div');
-            btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
-            btn.innerText = `线路 ${index + 1}`;
-            btn.onclick = () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                renderEpisodes(lineData);
+        lines.forEach((line, idx) => {
+            const lbtn = document.createElement('button');
+            lbtn.innerText = '线路' + (idx+1);
+            lbtn.onclick = () => {
+                epBox.innerHTML = '';
+                line.split('#').forEach(ep => {
+                    const [name, url] = ep.split('$');
+                    const ebtn = document.createElement('button');
+                    ebtn.className = 'ep-btn';
+                    ebtn.innerText = name;
+                    ebtn.onclick = () => {
+                        document.querySelectorAll('.ep-btn').forEach(b=>b.classList.remove('active'));
+                        ebtn.classList.add('active');
+                        player.src({ src: url, type: 'application/x-mpegURL' });
+                        player.play();
+                    };
+                    epBox.appendChild(ebtn);
+                });
+                epBox.firstChild.click();
             };
-            tabMenu.appendChild(btn);
-            if(index === 0) renderEpisodes(lineData);
+            lineBox.appendChild(lbtn);
         });
+        lineBox.firstChild.click();
     }
 
-    function renderEpisodes(lineData) {
-        const epList = document.getElementById('ep-list');
-        epList.innerHTML = '';
-        const eps = lineData.split('#');
-        eps.forEach((ep, i) => {
-            const [name, url] = ep.split('$');
-            const div = document.createElement('div');
-            div.className = 'ep-item';
-            div.innerText = name || `第${i+1}集`;
-            div.onclick = () => {
-                document.querySelectorAll('.ep-item').forEach(e => e.classList.remove('active'));
-                div.classList.add('active');
-                playUrl(url);
-            };
-            epList.appendChild(div);
-            if(i === 0) div.click();
-        });
-    }
-
-    function playUrl(url) {
-        // 关键：解决黑屏，强制 HLS 类型识别
-        player.src({
-            src: url,
-            type: url.includes('m3u8') ? 'application/x-mpegURL' : 'video/mp4'
-        });
-        player.play().catch(e => {
-            alert("播放失败：该源地址可能失效或存在跨域安全限制。");
-        });
-    }
-
-    function closePlayer() {
-        player.pause();
-        document.getElementById('play-layer').style.display = 'none';
-    }
-
-    renderSources();
+    function closePlayer() { player.pause(); document.getElementById('player-layer').style.display = 'none'; }
+    function delSrc(i) { uvSources.splice(i,1); localStorage.setItem('uv_sources_v4', JSON.stringify(uvSources)); renderSourceList(); }
 </script>
 </body>
 </html>
