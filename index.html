@@ -3,192 +3,234 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UltraVision Pro - 多源影院</title>
+    <meta name="referrer" content="no-referrer">
+    <title>UltraVision X - 聚合影视中台</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
-        :root { --main: #ff5c38; --bg: #0f0f0f; --card: #1a1a1a; --green: #00ff88; }
-        body, html { margin: 0; padding: 0; background: var(--bg); color: white; font-family: sans-serif; }
-        
-        /* 导航与管理 */
-        nav { display: flex; align-items: center; padding: 15px 4%; background: #000; border-bottom: 1px solid #222; position: sticky; top:0; z-index:100; }
-        .logo { font-size: 22px; font-weight: bold; color: var(--main); margin-right: 20px; }
-        .source-mgr { display: flex; gap: 10px; flex: 1; }
-        input { flex: 1; background: #222; border: 1px solid #333; color: white; padding: 8px 15px; border-radius: 4px; }
-        button { background: var(--main); color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 13px; }
-        
-        /* 源状态显示 */
-        .source-tags { display: flex; gap: 10px; padding: 10px 4%; overflow-x: auto; background: #111; }
-        .tag { background: #222; padding: 4px 12px; border-radius: 15px; font-size: 12px; display: flex; align-items: center; gap: 5px; border: 1px solid #333; }
-        .latency { font-weight: bold; }
-        .lat-green { color: var(--green); }
-        .lat-red { color: #ff3333; }
+        :root { --main: #ff5c38; --bg: #0a0a0a; --panel: #161616; --card: #252525; }
+        body { margin: 0; background: var(--bg); color: #eee; font-family: sans-serif; display: flex; height: 100vh; overflow: hidden; }
 
-        /* 海报墙布局 */
-        .container { padding: 20px 4%; }
-        .poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; }
-        .movie-card { background: var(--card); border-radius: 8px; overflow: hidden; cursor: pointer; transition: 0.3s; position: relative; }
-        .movie-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(255,92,56,0.3); }
-        .movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
-        .movie-card .info { padding: 10px; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
-        .movie-card .badge { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.7); font-size: 11px; padding: 2px 6px; border-radius: 3px; }
-
-        /* 播放器弹窗层 */
-        #player-overlay { 
-            position: fixed; top:0; left:0; width:100%; height:100%; background: #000; 
-            z-index: 2000; display: none; grid-template-columns: 1fr 320px; 
+        /* 左侧：源管理与分类 */
+        .sidebar { width: 280px; background: var(--panel); border-right: 1px solid #222; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 20px; text-align: center; border-bottom: 1px solid #222; }
+        .menu-label { padding: 15px 20px 5px; font-size: 12px; color: #666; text-transform: uppercase; }
+        .source-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .source-item { 
+            padding: 10px 15px; margin-bottom: 5px; border-radius: 6px; background: #222; 
+            cursor: pointer; font-size: 14px; display: flex; justify-content: space-between; align-items: center;
         }
-        .video-side { position: relative; display: flex; flex-direction: column; }
-        .list-side { background: #111; border-left: 1px solid #222; overflow-y: auto; padding: 15px; }
-        .close-btn { position: absolute; top: 10px; left: 10px; z-index: 2100; font-size: 24px; cursor: pointer; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 5px; }
-        
-        .episode-btn { display: block; width: 100%; padding: 10px; background: #222; margin-bottom: 5px; border: none; color: #ccc; text-align: left; cursor: pointer; border-radius: 4px; }
-        .episode-btn:hover { background: #333; color: white; }
-        .episode-btn.active { background: var(--main); color: white; }
+        .source-item.active { background: var(--main); }
+        .del-btn { color: #ff3333; font-weight: bold; padding: 0 5px; }
 
-        @media (max-width: 800px) {
-            #player-overlay { grid-template-columns: 1fr; }
-            .list-side { height: 300px; }
-        }
+        /* 右侧：主界面 */
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .top-nav { padding: 15px 25px; background: #000; display: flex; gap: 15px; align-items: center; border-bottom: 1px solid #222; }
+        .search-bar { flex: 1; display: flex; background: #222; border-radius: 20px; padding: 5px 15px; border: 1px solid #333; }
+        .search-bar input { background: transparent; border: none; color: white; flex: 1; padding: 5px; outline: none; }
+        
+        /* 内容区 */
+        .content-area { flex: 1; overflow-y: auto; padding: 20px; }
+        .filter-tags { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tag { padding: 5px 15px; border-radius: 15px; background: #222; font-size: 13px; cursor: pointer; }
+        .tag.active { background: var(--main); }
+
+        /* 海报墙 */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; }
+        .card { background: var(--card); border-radius: 8px; overflow: hidden; cursor: pointer; transition: 0.3s; position: relative; }
+        .card:hover { transform: scale(1.03); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        .card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #333; }
+        .card .title { padding: 8px; font-size: 13px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card .from { position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.6); font-size: 10px; padding: 2px 5px; border-radius: 3px; color: var(--main); }
+
+        /* 播放层 */
+        #player-modal { position: fixed; inset: 0; background: #000; z-index: 2000; display: none; grid-template-columns: 1fr 320px; }
+        .list-side { background: #111; padding: 20px; overflow-y: auto; border-left: 1px solid #222; }
+        .ep-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .ep-btn { background: #222; border: 1px solid #333; color: #ccc; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .ep-btn.active { background: var(--main); color: white; border-color: var(--main); }
     </style>
 </head>
 <body>
 
-<nav>
-    <div class="logo">UV-PRO</div>
-    <div class="source-mgr">
-        <input type="text" id="api-url" placeholder="贴入 CMS JSON 接口或 M3U 地址 (如茅台 API)...">
-        <button onclick="addSource()">添加订阅</button>
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <h2 style="color:var(--main); margin:0">UltraVision X</h2>
     </div>
-</nav>
-
-<div class="source-tags" id="source-status">
+    
+    <div class="menu-label">管理订阅地址</div>
+    <div style="padding: 0 20px 15px;">
+        <input type="text" id="in-name" placeholder="名称" style="width:100%; margin-bottom:5px; background: #222; border: 1px solid #333; color:white; padding:5px;">
+        <input type="text" id="in-url" placeholder="JSON 接口地址" style="width:100%; margin-bottom:5px; background: #222; border: 1px solid #333; color:white; padding:5px;">
+        <button onclick="addSource()" style="width:100%; background:var(--main); border:none; color:white; padding:8px; border-radius:4px; cursor:pointer;">添加新源</button>
     </div>
 
-<div class="container">
-    <div class="poster-grid" id="main-grid">
+    <div class="menu-label">当前可用源 (自动测速)</div>
+    <div class="source-list" id="source-list"></div>
+</aside>
+
+<main class="main">
+    <div class="top-nav">
+        <div class="search-bar">
+            <input type="text" id="search-input" placeholder="输入关键词，聚合全网订阅源搜索...">
+            <button onclick="aggregateSearch()" style="background:none; border:none; color:var(--main); font-weight:bold; cursor:pointer;">搜索</button>
         </div>
-</div>
+    </div>
 
-<div id="player-overlay">
-    <div class="close-btn" onclick="closePlayer()">✕ 返回首页</div>
-    <div class="video-side">
-        <video id="player" class="video-js vjs-big-play-centered" controls preload="auto"></video>
-        <div style="padding: 20px;">
-            <h1 id="v-title">影片标题</h1>
-            <p id="v-desc" style="color: #888; font-size: 14px;"></p>
+    <div class="content-area">
+        <div class="filter-tags" id="category-tags">
+            <div class="tag active">全部</div>
+            <div class="tag">电影</div>
+            <div class="tag">电视剧</div>
+            <div class="tag">综艺</div>
+            <div class="tag">动漫</div>
+        </div>
+        <div class="grid" id="main-grid">
+            <div style="grid-column: 1/-1; text-align: center; padding: 100px; color: #666;">
+                请在左侧添加订阅地址，或直接在上方搜索影片
+            </div>
+        </div>
+    </div>
+</main>
+
+<div id="player-modal">
+    <div style="display:flex; flex-direction:column; position:relative;">
+        <div onclick="closePlayer()" style="position:absolute; top:15px; left:15px; z-index:10; cursor:pointer; background:rgba(0,0,0,0.5); padding:5px 15px; border-radius:20px;">✕ 关闭</div>
+        <div id="video-container" style="flex:1; background:#000;">
+            <video id="main-v" class="video-js vjs-big-play-centered" controls preload="auto" style="width:100%; height:100%;"></video>
+        </div>
+        <div style="padding:20px; background:var(--panel);">
+            <h2 id="v-title" style="margin:0"></h2>
+            <p id="v-desc" style="font-size:14px; color:#888; margin-top:10px;"></p>
         </div>
     </div>
     <div class="list-side">
         <h3>选集播放</h3>
-        <div id="episode-list"></div>
+        <div class="ep-grid" id="ep-list"></div>
     </div>
 </div>
 
 <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 <script>
-    const player = videojs('player', { fluid: true });
-    let allContent = [];
-    let currentSources = JSON.parse(localStorage.getItem('my_sources') || '[]');
+    const player = videojs('main-v');
+    let db = JSON.parse(localStorage.getItem('uv_db') || '[]');
 
-    // 1. 初始化加载
-    window.onload = () => {
-        currentSources.forEach(s => testAndLoad(s));
-    };
-
-    // 2. 添加源并测速
-    async function addSource() {
-        const url = document.getElementById('api-url').value.trim();
-        if(!url || currentSources.includes(url)) return;
-        currentSources.push(url);
-        localStorage.setItem('my_sources', JSON.stringify(currentSources));
-        testAndLoad(url);
+    // 初始化：渲染侧边栏
+    function renderSidebar() {
+        const container = document.getElementById('source-list');
+        container.innerHTML = '';
+        db.forEach((src, i) => {
+            const div = document.createElement('div');
+            div.className = 'source-item';
+            div.innerHTML = `<span>${src.name}</span> <span class="del-btn" onclick="removeSource(${i})">×</span>`;
+            div.onclick = (e) => { if(!e.target.classList.contains('del-btn')) loadSingleSource(src.url); };
+            container.appendChild(div);
+        });
     }
 
-    // 3. 测速逻辑与内容抓取
-    async function testAndLoad(url) {
-        const start = Date.now();
-        const tagId = btoa(url).substring(0, 8);
-        
-        // 先在状态栏显示“测试中”
-        const statusBox = document.getElementById('source-status');
-        const tag = document.createElement('div');
-        tag.className = 'tag';
-        tag.id = `tag-${tagId}`;
-        tag.innerHTML = `<span>源:${url.substring(0,15)}...</span> <span class="latency">测速中...</span>`;
-        statusBox.appendChild(tag);
-
-        try {
-            const resp = await fetch(url);
-            const latency = Date.now() - start;
-            const data = await resp.json();
-            
-            // 更新延迟显示
-            const latClass = latency < 500 ? 'lat-green' : 'lat-red';
-            document.querySelector(`#tag-${tagId} .latency`).innerHTML = `<span class="${latClass}">${latency}ms</span>`;
-            
-            // 处理茅台 API (CMS 类型)
-            if(data.list) {
-                appendContent(data.list);
-            }
-        } catch (e) {
-            document.querySelector(`#tag-${tagId} .latency`).innerHTML = `<span class="lat-red">超时</span>`;
+    function addSource() {
+        const name = document.getElementById('in-name').value;
+        const url = document.getElementById('in-url').value;
+        if(name && url) {
+            db.push({ name, url });
+            localStorage.setItem('uv_db', JSON.stringify(db));
+            renderSidebar();
         }
     }
 
-    // 4. 渲染海报墙
-    function appendContent(newList) {
+    function removeSource(i) {
+        db.splice(i, 1);
+        localStorage.setItem('uv_db', JSON.stringify(db));
+        renderSidebar();
+    }
+
+    // 核心功能：聚合搜索
+    async function aggregateSearch() {
+        const keyword = document.getElementById('search-input').value.trim();
+        if(!keyword) return;
+        
         const grid = document.getElementById('main-grid');
-        newList.forEach(item => {
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">正在聚合搜索全网资源...</div>';
+
+        // 并发请求所有源
+        const searchPromises = db.map(src => 
+            fetch(`${src.url}?ac=detail&wd=${encodeURIComponent(keyword)}`)
+            .then(res => res.json())
+            .catch(() => ({ list: [] }))
+        );
+
+        const results = await Promise.all(searchPromises);
+        grid.innerHTML = '';
+        
+        results.forEach((data, idx) => {
+            if(data.list) {
+                renderCards(data.list, db[idx].name);
+            }
+        });
+    }
+
+    // 渲染海报卡片
+    function renderCards(list, sourceName) {
+        const grid = document.getElementById('main-grid');
+        list.forEach(item => {
             const card = document.createElement('div');
-            card.className = 'movie-card';
-            // 茅台 API 通常自带 pic (海报)
+            card.className = 'card';
+            // 修复图片显示的关键：referrerPolicy
             card.innerHTML = `
-                <img src="${item.vod_pic}" onerror="this.src='https://via.placeholder.com/200x300?text=No+Pic'">
-                <div class="badge">${item.vod_remarks || '高清'}</div>
-                <div class="info">${item.vod_name}</div>
+                <div class="from">${sourceName}</div>
+                <img src="${item.vod_pic}" referrerpolicy="no-referrer" onerror="this.src='https://via.placeholder.com/200x300?text=暂无封面'">
+                <div class="title">${item.vod_name}</div>
             `;
             card.onclick = () => openPlayer(item);
             grid.appendChild(card);
         });
     }
 
-    // 5. 播放详情逻辑
-    function openPlayer(item) {
-        document.getElementById('player-overlay').style.display = 'grid';
-        document.getElementById('v-title').innerText = item.vod_name;
-        document.getElementById('v-desc').innerText = item.vod_content || '暂无简介';
+    // 播放逻辑
+    function openPlayer(video) {
+        document.getElementById('player-modal').style.display = 'grid';
+        document.getElementById('v-title').innerText = video.vod_name;
+        document.getElementById('v-desc').innerText = video.vod_content.replace(/<[^>]+>/g, '');
 
-        // 解析选集 (茅台 API 格式: 1集$url#2集$url)
-        const episodes = item.vod_play_url.split('#');
-        const listDiv = document.getElementById('episode-list');
-        listDiv.innerHTML = "";
-
-        episodes.forEach((ep, idx) => {
-            const [name, url] = ep.split('$');
+        const epList = document.getElementById('ep-list');
+        epList.innerHTML = '';
+        
+        // 解析播放地址
+        const groups = video.vod_play_url.split('$$$'); // 处理多线路
+        const mainLine = groups[0].split('#');
+        
+        mainLine.forEach((line, i) => {
+            const [name, url] = line.split('$');
             const btn = document.createElement('button');
-            btn.className = 'episode-btn';
-            btn.innerText = name || `第${idx+1}集`;
+            btn.className = 'ep-btn';
+            btn.innerText = name || `第${i+1}集`;
             btn.onclick = () => {
-                // 选集激活状态
-                document.querySelectorAll('.episode-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                // 切换地址
                 player.src({ src: url, type: 'application/x-mpegURL' });
                 player.play();
-                // 记录历史
-                localStorage.setItem(`history_${item.vod_id}`, url);
             };
-            listDiv.appendChild(btn);
-            
-            // 自动播放第一集
-            if(idx === 0) btn.click();
+            epList.appendChild(btn);
+            if(i === 0) btn.click();
         });
     }
 
     function closePlayer() {
         player.pause();
-        document.getElementById('player-overlay').style.display = 'none';
+        document.getElementById('player-modal').style.display = 'none';
     }
+
+    async function loadSingleSource(url) {
+        const grid = document.getElementById('main-grid');
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">正在刷新资源...</div>';
+        try {
+            const res = await fetch(url + "?ac=detail");
+            const data = await res.json();
+            grid.innerHTML = '';
+            renderCards(data.list, "当前源");
+        } catch(e) {}
+    }
+
+    renderSidebar();
 </script>
 </body>
 </html>
