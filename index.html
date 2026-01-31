@@ -130,7 +130,7 @@
         const kw = document.getElementById('search-kw').value.trim();
         if(!kw) return;
         const grid = document.getElementById('main-grid');
-        grid.innerHTML = '<div class="loading">正在跨域检索全网资源并匹配豆瓣数据...</div>';
+        grid.innerHTML = '<div class="loading">正在检索全网资源并匹配豆瓣数据...</div>';
 
         // 1. 聚合抓取资源站数据
         const promises = sources.map(s => 
