@@ -4,166 +4,183 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>UltraVision OS 6.0</title>
+    <title>UltraVision OS 7.0 | 豆瓣全联动旗舰</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
-        :root { --main: #ff5c38; --bg: #0a0a0a; --panel: #151515; }
-        body, html { margin: 0; padding: 0; background: var(--bg); color: #fff; font-family: sans-serif; height: 100vh; overflow: hidden; }
+        :root { --main: #00fb9a; --bg: #050505; --card: #121212; --panel: #181818; }
+        body, html { margin: 0; padding: 0; background: var(--bg); color: #fff; font-family: "PingFang SC", sans-serif; height: 100vh; overflow: hidden; }
         
         #app { display: flex; height: 100vh; }
         
-        /* 侧边栏：历史与管理 */
-        aside { width: 280px; background: #000; border-right: 1px solid #222; display: flex; flex-direction: column; }
-        .tab-box { display: flex; background: #111; padding: 10px; gap: 10px; }
-        .tab-btn { flex: 1; padding: 5px; text-align: center; cursor: pointer; font-size: 13px; border-radius: 4px; }
-        .tab-btn.active { background: var(--main); }
-        .list-container { flex: 1; overflow-y: auto; padding: 15px; }
-        .history-item { padding: 10px; background: #1a1a1a; margin-bottom: 8px; border-radius: 6px; font-size: 12px; cursor: pointer; }
-        .history-item:hover { border: 1px solid var(--main); }
-
+        /* 侧边栏：历史 + 订阅 */
+        aside { width: 300px; background: #000; border-right: 1px solid #222; display: flex; flex-direction: column; }
+        .side-title { padding: 20px; font-size: 18px; font-weight: bold; color: var(--main); border-bottom: 1px solid #222; }
+        .section-label { padding: 15px 20px 5px; font-size: 12px; color: #666; text-transform: uppercase; }
+        .list-box { flex: 1; overflow-y: auto; padding: 10px; }
+        
+        /* 记录样式 */
+        .item-card { background: var(--panel); padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 13px; cursor: pointer; transition: 0.2s; position: relative; border: 1px solid transparent; }
+        .item-card:hover { border-color: var(--main); background: #222; }
+        .item-card .del { position: absolute; right: 10px; top: 10px; color: #ff4444; opacity: 0; }
+        .item-card:hover .del { opacity: 1; }
+        
         /* 主界面 */
-        main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
-        header { padding: 20px 40px; background: rgba(10,10,10,0.9); position: sticky; top:0; z-index: 100; border-bottom: 1px solid #222; }
-        .nav-cats { display: flex; gap: 30px; margin-bottom: 20px; }
-        .cat { cursor: pointer; color: #888; font-size: 16px; }
-        .cat.active { color: var(--main); font-weight: bold; border-bottom: 2px solid var(--main); }
-        .search-row { display: flex; gap: 15px; }
-        input.search { flex: 1; background: #222; border: 1px solid #333; color: #fff; padding: 10px 20px; border-radius: 25px; }
+        main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        header { background: rgba(0,0,0,0.9); padding: 15px 30px; border-bottom: 1px solid #222; }
+        .nav-cats { display: flex; gap: 25px; margin-bottom: 15px; }
+        .cat { cursor: pointer; color: #888; font-size: 15px; position: relative; padding-bottom: 5px; }
+        .cat.active { color: var(--main); }
+        .cat.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: var(--main); }
+        .search-row { display: flex; gap: 10px; }
+        input.search { flex: 1; background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 10px 20px; border-radius: 20px; outline: none; }
 
-        /* 海报墙 */
-        .content { padding: 30px; }
-        .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 25px; }
-        .card { background: #151515; border-radius: 12px; overflow: hidden; cursor: pointer; transition: 0.3s; position: relative; }
-        .card:hover { transform: translateY(-10px); }
+        /* 海报区 */
+        .content { flex: 1; overflow-y: auto; padding: 30px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 25px; }
+        .card { background: var(--card); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s; position: relative; }
+        .card:hover { transform: scale(1.05); z-index: 10; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
-        .card .score { position: absolute; top: 10px; right: 10px; background: var(--main); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+        .card .score { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: #ffb800; font-size: 12px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
         .card .title { padding: 10px; font-size: 13px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* 播放器 */
-        #player-layer { position: fixed; inset: 0; background: #000; z-index: 2000; display: none; grid-template-columns: 1fr 320px; }
-        .video-side { display: flex; flex-direction: column; position: relative; }
-        .info-side { background: #111; padding: 20px; border-left: 1px solid #222; overflow-y: auto; }
-        .close-p { position: absolute; top: 15px; left: 15px; z-index: 10; cursor: pointer; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 20px; }
-        .ep-btn { background: #222; border: 1px solid #333; color: #ccc; padding: 10px; margin: 5px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        .ep-btn.active { background: var(--main); color: #fff; }
+        /* 播放器全屏 */
+        #player-layer { position: fixed; inset: 0; background: #000; z-index: 3000; display: none; grid-template-columns: 1fr 350px; }
+        .video-box { position: relative; display: flex; flex-direction: column; }
+        .ep-box { background: #111; padding: 20px; border-left: 1px solid #222; overflow-y: auto; }
+        .close-btn { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 20px; cursor: pointer; }
+        .ep-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 20px; }
+        .ep-btn { background: #222; border: 1px solid #333; color: #aaa; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .ep-btn.active { background: var(--main); color: #000; font-weight: bold; border-color: var(--main); }
     </style>
 </head>
 <body>
 
 <div id="app">
     <aside>
-        <div class="tab-box">
-            <div class="tab-btn active" onclick="switchSide('src')">订阅管理</div>
-            <div class="tab-btn" onclick="switchSide('his')">播放历史</div>
+        <div class="side-title">ULTRAVISION OS</div>
+        
+        <div class="section-label">添加订阅源</div>
+        <div style="padding: 0 20px 15px;">
+            <input type="text" id="new-name" placeholder="源名称(如: 茅台)" style="width:100%; margin-bottom:5px; background:#111; border:1px solid #333; color:#fff; padding:6px; border-radius:4px;">
+            <input type="text" id="new-url" placeholder="API 地址" style="width:100%; margin-bottom:5px; background:#111; border:1px solid #333; color:#fff; padding:6px; border-radius:4px;">
+            <button onclick="saveSrc()" style="width:100%; background:var(--main); border:none; color:#000; font-weight:bold; padding:8px; border-radius:4px; cursor:pointer;">导入订阅</button>
         </div>
-        <div class="list-container" id="side-list">
-            <div id="src-mgr">
-                <input type="text" id="sn" placeholder="源名称" style="width:100%; padding:8px; margin-bottom:5px; background:#222; border:1px solid #333; color:#fff;">
-                <input type="text" id="su" placeholder="API地址" style="width:100%; padding:8px; margin-bottom:10px; background:#222; border:1px solid #333; color:#fff;">
-                <button onclick="addSource()" style="width:100%; background:var(--main); border:none; color:#fff; padding:8px; cursor:pointer;">导入源</button>
-                <div id="src-items" style="margin-top:20px;"></div>
-            </div>
-            <div id="his-list" style="display:none;"></div>
-        </div>
+
+        <div class="section-label">播放历史记录</div>
+        <div class="list-box" id="history-list"></div>
+
+        <div class="section-label">已导入订阅源</div>
+        <div class="list-box" id="src-list"></div>
     </aside>
 
     <main>
         <header>
-            <div class="nav-cats">
-                <div class="cat active" onclick="loadDouban('Movie')">电影</div>
-                <div class="cat" onclick="loadDouban('TV')">电视剧</div>
-                <div class="cat" onclick="loadDouban('Variety')">综艺</div>
-                <div class="cat" onclick="loadDouban('Anime')">动漫</div>
+            <div class="nav-cats" id="cat-tabs">
+                <div class="cat active" data-type="Movie">电影推荐</div>
+                <div class="cat" data-type="TV">热播剧集</div>
+                <div class="cat" data-type="Variety">综艺晚会</div>
+                <div class="cat" data-type="Anime">二次元动漫</div>
             </div>
             <div class="search-row">
-                <input type="text" id="kw" class="search" placeholder="输入关键词聚合搜索..." onkeypress="if(event.keyCode==13) searchAll()">
-                <button onclick="searchAll()" style="background:var(--main); border:none; color:#fff; padding:0 20px; border-radius:25px; cursor:pointer;">聚合搜索</button>
+                <input type="text" id="search-kw" class="search" placeholder="输入片名，全网源聚合匹配...">
+                <button onclick="aggregateSearch()" style="background:var(--main); border:none; color:#000; font-weight:bold; padding:0 20px; border-radius:20px; cursor:pointer;">聚合搜索</button>
             </div>
         </header>
 
         <div class="content">
-            <div class="movie-grid" id="main-grid"></div>
+            <div class="grid" id="main-grid"></div>
         </div>
     </main>
 </div>
 
 <div id="player-layer">
-    <div class="close-p" onclick="closePlayer()">✕ 关闭</div>
-    <div class="video-side">
-        <video id="v-core" class="video-js vjs-big-play-centered" controls style="width:100%; height:100%;"></video>
-        <div style="padding:20px;">
-            <h2 id="p-name"></h2>
-            <p id="p-desc" style="color:#888; font-size:14px;"></p>
+    <div class="close-btn" onclick="closePlayer()">✕ 退出播放</div>
+    <div class="video-box">
+        <video id="v-player" class="video-js vjs-big-play-centered" controls style="width:100%; height:100%;"></video>
+        <div style="padding:25px; background:linear-gradient(to bottom, #111, #000);">
+            <h1 id="v-title" style="margin:0; color:var(--main);"></h1>
+            <p id="v-desc" style="color:#888; font-size:14px; line-height:1.6;"></p>
         </div>
     </div>
-    <div class="info-side">
-        <h3>选集与线路</h3>
-        <div id="p-lines"></div>
-        <div id="p-eps" style="display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:15px;"></div>
+    <div class="ep-box">
+        <h3>多线路选集</h3>
+        <div id="v-lines" style="display:flex; gap:10px;"></div>
+        <div class="ep-grid" id="v-eps"></div>
     </div>
 </div>
 
 <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 <script>
-    const player = videojs('v-core');
-    let dbSources = JSON.parse(localStorage.getItem('uv_sources_v6') || '[]');
-    let history = JSON.parse(localStorage.getItem('uv_history') || '[]');
+    const player = videojs('v-player');
+    let sources = JSON.parse(localStorage.getItem('uv_src_v7') || '[]');
+    let historyData = JSON.parse(localStorage.getItem('uv_his_v7') || '[]');
 
+    // 1. 初始化
     window.onload = () => {
-        renderSources();
-        loadDouban('Movie');
-        renderHistory();
+        initUI();
+        loadDouban('Movie'); // 首页默认加载电影
     };
 
-    // 1. 豆瓣数据导入逻辑
-    async function loadDouban(type) {
-        document.querySelectorAll('.cat').forEach(el => el.classList.remove('active'));
-        if(event.target.classList) event.target.classList.add('active');
-        
-        const grid = document.getElementById('main-grid');
-        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">同步豆瓣中...</div>';
+    function initUI() {
+        renderSources();
+        renderHistory();
+        document.querySelectorAll('.cat').forEach(c => {
+            c.onclick = () => {
+                document.querySelectorAll('.cat').forEach(i => i.classList.remove('active'));
+                c.classList.add('active');
+                loadDouban(c.dataset.type);
+            }
+        });
+    }
 
+    // 2. 豆瓣数据真导入：从 API 抓取热映排行榜
+    async function loadDouban(type) {
+        const grid = document.getElementById('main-grid');
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:50px;">正在从豆瓣云端导入最新排行...</div>';
+        
         try {
-            // 通过 wmdb 接口获取豆瓣排行
-            const res = await fetch(`https://api.wmdb.tv/api/v1/top?type=${type}&skip=0&limit=30`);
+            // 使用公共豆瓣数据接口
+            const res = await fetch(`https://api.wmdb.tv/api/v1/top?type=${type}&skip=0&limit=36`);
             const data = await res.json();
             grid.innerHTML = '';
             data.forEach(m => {
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
-                    <div class="score">${m.doubanRating || '7.5'}</div>
+                    <div class="score">${m.doubanRating || '7.0'}</div>
                     <img src="${m.data[0].poster}" referrerpolicy="no-referrer">
                     <div class="title">${m.data[0].name}</div>
                 `;
-                // 关键点：点击豆瓣海报，直接触发全源聚合搜索
-                card.onclick = () => { 
-                    document.getElementById('kw').value = m.data[0].name;
-                    searchAll(); 
+                // 点击豆瓣海报，直接通过标题在资源站里聚合搜索
+                card.onclick = () => {
+                    document.getElementById('search-kw').value = m.data[0].name;
+                    aggregateSearch();
                 };
                 grid.appendChild(card);
             });
-        } catch(e) { grid.innerHTML = '豆瓣连接失败，请手动搜索。'; }
+        } catch(e) {
+            grid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">豆瓣数据拉取失败，请检查网络或点击搜索。</div>';
+        }
     }
 
-    // 2. 聚合搜索
-    async function searchAll() {
-        const kw = document.getElementById('kw').value.trim();
+    // 3. 聚合搜索逻辑
+    async function aggregateSearch() {
+        const kw = document.getElementById('search-kw').value.trim();
         if(!kw) return;
         const grid = document.getElementById('main-grid');
-        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">正在聚合检索...</div>';
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">正在聚合全网订阅源...</div>';
 
-        const tasks = dbSources.map(s => 
-            fetch(`${s.url}?ac=detail&wd=${encodeURIComponent(kw)}`).then(r => r.json()).catch(()=>({list:[]}))
+        const promises = sources.map(s => 
+            fetch(`${s.url}?ac=detail&wd=${encodeURIComponent(kw)}`).then(r => r.json()).catch(() => ({list:[]}))
         );
-        const results = await Promise.all(tasks);
+        const results = await Promise.all(promises);
         grid.innerHTML = '';
-        results.forEach((res, i) => {
+        results.forEach((res, idx) => {
             if(res.list) res.list.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
-                    <div class="score" style="background:#555">${dbSources[i].name}</div>
+                    <div class="score" style="color:var(--main)">${sources[idx].name}</div>
                     <img src="${item.vod_pic}" referrerpolicy="no-referrer">
                     <div class="title">${item.vod_name}</div>
                 `;
@@ -173,26 +190,30 @@
         });
     }
 
-    // 3. 播放与历史记录保存
+    // 4. 播放与历史记录保存
     function openPlayer(item) {
         document.getElementById('player-layer').style.display = 'grid';
-        document.getElementById('p-name').innerText = item.vod_name;
-        document.getElementById('p-desc').innerText = item.vod_content.replace(/<[^>]+>/g, '');
+        document.getElementById('v-title').innerText = item.vod_name;
+        document.getElementById('v-desc').innerText = item.vod_content.replace(/<[^>]+>/g, '');
 
-        // 保存到历史记录
-        saveToHistory(item);
+        // 存入播放历史 (去重并置顶)
+        historyData = historyData.filter(h => h.vod_id !== item.vod_id);
+        historyData.unshift(item);
+        if(historyData.length > 20) historyData.pop();
+        localStorage.setItem('uv_his_v7', JSON.stringify(historyData));
+        renderHistory();
+
+        const lineNav = document.getElementById('v-lines');
+        const epGrid = document.getElementById('v-eps');
+        lineNav.innerHTML = ''; epGrid.innerHTML = '';
 
         const lines = item.vod_play_url.split('$$$');
-        const lineBox = document.getElementById('p-lines');
-        const epBox = document.getElementById('p-eps');
-        lineBox.innerHTML = ''; epBox.innerHTML = '';
-
-        lines.forEach((line, idx) => {
+        lines.forEach((line, i) => {
             const lbtn = document.createElement('button');
-            lbtn.className = 'line-btn';
-            lbtn.innerText = '线路' + (idx+1);
+            lbtn.className = 'ep-btn';
+            lbtn.innerText = '线路' + (i+1);
             lbtn.onclick = () => {
-                epBox.innerHTML = '';
+                epGrid.innerHTML = '';
                 line.split('#').forEach(ep => {
                     const [name, url] = ep.split('$');
                     const ebtn = document.createElement('button');
@@ -204,74 +225,69 @@
                         player.src({ src: url, type: 'application/x-mpegURL' });
                         player.play();
                     };
-                    epBox.appendChild(ebtn);
+                    epGrid.appendChild(ebtn);
                 });
-                if(epBox.firstChild) epBox.firstChild.click();
+                if(epGrid.firstChild) epGrid.firstChild.click();
             };
-            lineBox.appendChild(lbtn);
+            lineNav.appendChild(lbtn);
         });
-        if(lineBox.firstChild) lineBox.firstChild.click();
+        if(lineNav.firstChild) lineNav.firstChild.click();
     }
 
-    function saveToHistory(item) {
-        // 过滤重复
-        history = history.filter(h => h.vod_id !== item.vod_id);
-        history.unshift({
-            vod_id: item.vod_id,
-            vod_name: item.vod_name,
-            vod_pic: item.vod_pic,
-            time: new Date().toLocaleString(),
-            fullData: item // 保存完整数据以便从历史记录点击播放
-        });
-        if(history.length > 20) history.pop();
-        localStorage.setItem('uv_history', JSON.stringify(history));
-        renderHistory();
-    }
-
+    // 5. 侧边栏渲染
     function renderHistory() {
-        const box = document.getElementById('his-list');
-        box.innerHTML = history.length ? '' : '<p style="color:#666">暂无历史记录</p>';
-        history.forEach(h => {
-            const div = document.createElement('div');
-            div.className = 'history-item';
-            div.innerHTML = `<strong>${h.vod_name}</strong><br><small style="color:#666">${h.time}</small>`;
-            div.onclick = () => openPlayer(h.fullData);
-            box.appendChild(div);
+        const box = document.getElementById('history-list');
+        box.innerHTML = historyData.length ? '' : '<div style="color:#444; padding:10px;">暂无历史记录</div>';
+        historyData.forEach((h, i) => {
+            const d = document.createElement('div');
+            d.className = 'item-card';
+            d.innerHTML = `<b>${h.vod_name}</b><br><small style="color:#666">上次观看</small><span class="del" onclick="delHis(event, ${i})">✕</span>`;
+            d.onclick = () => openPlayer(h);
+            box.appendChild(d);
         });
-    }
-
-    // 源管理与UI切换
-    function switchSide(type) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        event.target.classList.add('active');
-        document.getElementById('src-mgr').style.display = type === 'src' ? 'block' : 'none';
-        document.getElementById('his-list').style.display = type === 'his' ? 'block' : 'none';
-    }
-
-    function addSource() {
-        const n = document.getElementById('sn').value;
-        const u = document.getElementById('su').value;
-        if(n && u) {
-            dbSources.push({ name: n, url: u });
-            localStorage.setItem('uv_sources_v6', JSON.stringify(dbSources));
-            renderSources();
-        }
     }
 
     function renderSources() {
-        const box = document.getElementById('src-items');
+        const box = document.getElementById('src-list');
         box.innerHTML = '';
-        dbSources.forEach((s, i) => {
-            const div = document.createElement('div');
-            div.className = 'history-item';
-            div.innerHTML = `${s.name} <span onclick="delSrc(${i})" style="float:right">✕</span>`;
-            div.onclick = (e) => { if(e.target.tagName!=='SPAN') { document.getElementById('kw').value = ''; loadFromSingle(s.url); } };
-            box.appendChild(div);
+        sources.forEach((s, i) => {
+            const d = document.createElement('div');
+            d.className = 'item-card';
+            d.innerHTML = `${s.name} <span class="del" onclick="delSrc(event, ${i})">✕</span>`;
+            d.onclick = () => { 
+                document.getElementById('search-kw').value = ''; 
+                loadSingleSrc(s.url); 
+            };
+            box.appendChild(d);
         });
     }
 
-    function delSrc(i) { dbSources.splice(i,1); localStorage.setItem('uv_sources_v6', JSON.stringify(dbSources)); renderSources(); }
+    // 功能函数
+    function saveSrc() {
+        const n = document.getElementById('new-name').value;
+        const u = document.getElementById('new-url').value;
+        if(n && u) {
+            sources.push({ name: n, url: u });
+            localStorage.setItem('uv_src_v7', JSON.stringify(sources));
+            renderSources();
+        }
+    }
+    function delSrc(e, i) { e.stopPropagation(); sources.splice(i,1); localStorage.setItem('uv_src_v7', JSON.stringify(sources)); renderSources(); }
+    function delHis(e, i) { e.stopPropagation(); historyData.splice(i,1); localStorage.setItem('uv_his_v7', JSON.stringify(historyData)); renderHistory(); }
     function closePlayer() { player.pause(); document.getElementById('player-layer').style.display = 'none'; }
+    async function loadSingleSrc(url) {
+        const grid = document.getElementById('main-grid');
+        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">正在读取源首页内容...</div>';
+        const res = await fetch(url + "?ac=detail").then(r => r.json()).catch(()=>({list:[]}));
+        grid.innerHTML = '';
+        if(res.list) res.list.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `<img src="${item.vod_pic}" referrerpolicy="no-referrer"><div class="title">${item.vod_name}</div>`;
+            card.onclick = () => openPlayer(item);
+            grid.appendChild(card);
+        });
+    }
 </script>
 </body>
 </html>
