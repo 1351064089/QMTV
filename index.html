@@ -4,190 +4,288 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>JOE TV V20 | 智能跳过片头片尾</title>
+    <title>JOE TV V21 | 豆瓣致敬版</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
-        :root { --main: #6c5ce7; --bg: #f4f7f6; --text: #2d3436; }
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: "PingFang SC", sans-serif; overflow-x: hidden; }
+        :root { 
+            --db-green: #007722; 
+            --db-bg: #f7f7f7; 
+            --db-text: #111; 
+            --db-sub: #9b9b9b;
+            --db-link: #37a;
+        }
+        body { margin: 0; background: var(--db-bg); color: var(--db-text); font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif; -webkit-font-smoothing: antialiased; }
         
-        /* 导航与搜索 */
-        header { position: sticky; top: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); display: flex; align-items: center; padding: 10px 30px; z-index: 1000; border-bottom: 1px solid #e0e0e0; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
-        .logo { font-size: 22px; font-weight: 900; color: var(--main); margin-right: 30px; cursor: pointer; white-space: nowrap; text-shadow: 2px 2px 0px rgba(108,92,231,0.1); }
+        /* 豆瓣风格导航 */
+        header { background: #fff; border-bottom: 1px solid #f3f3f3; padding: 15px 4vw; position: sticky; top: 0; z-index: 999; display: flex; align-items: center; justify-content: space-between; }
+        .logo { color: var(--db-green); font-size: 24px; font-weight: 900; letter-spacing: -1px; cursor: pointer; }
         
-        .nav { display: flex; gap: 8px; flex: 1; overflow-x: auto; scrollbar-width: none; }
-        .nav::-webkit-scrollbar { display: none; }
-        .nav div { padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; background: #f1f5f9; font-weight: bold; white-space: nowrap; transition: 0.2s; color: #64748b; }
-        .nav div:hover { background: #e2e8f0; color: #334155; }
-        .nav .active { background: var(--main); color: white; box-shadow: 0 4px 10px rgba(108, 92, 231, 0.3); }
+        .search-area { position: relative; flex: 1; max-width: 500px; margin: 0 40px; }
+        .search-area input { width: 100%; background: #f5f5f5; border: none; padding: 10px 20px; border-radius: 5px; outline: none; transition: 0.2s; font-size: 14px; }
+        .search-area input:focus { background: #fff; box-shadow: 0 0 0 2px rgba(0,119,34,0.2); }
         
-        .search-box { position: relative; margin-left: 20px; }
-        .search-box input { width: 220px; padding: 9px 18px; border-radius: 20px; border: 1px solid #ddd; outline: none; background: #f8fafc; font-size: 13px; transition: 0.3s; }
-        .search-box input:focus { width: 280px; border-color: var(--main); background: #fff; box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1); }
+        .nav-links { display: flex; gap: 25px; font-size: 14px; }
+        .nav-links div { cursor: pointer; color: #666; transition: 0.2s; }
+        .nav-links div:hover, .nav-links div.active { color: var(--db-green); font-weight: bold; }
+        .nav-links .mgr { color: #d63031; font-weight: bold; }
 
-        /* 内容区 */
-        .container { max-width: 1650px; margin: 25px auto; padding: 0 20px; }
-        .row-title { font-size: 18px; font-weight: 800; margin: 30px 0 15px; border-left: 5px solid var(--main); padding-left: 12px; display: flex; justify-content: space-between; align-items: center; color: #1e293b; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 20px; }
+        /* 布局容器 */
+        .container { max-width: 1200px; margin: 0 auto; padding: 30px 20px; min-height: 80vh; }
         
-        /* 卡片样式 */
-        .card { background: #fff; border-radius: 14px; overflow: hidden; cursor: pointer; transition: all 0.3s ease; border: 1px solid #f1f5f9; position: relative; }
-        .card:hover { transform: translateY(-6px); box-shadow: 0 15px 35px rgba(0,0,0,0.1); border-color: var(--main); }
-        .card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
-        .card .info { padding: 12px 10px; text-align: center; font-size: 13px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #334155; }
-        .card .tag { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.65); color: #fff; font-size: 10px; padding: 3px 8px; border-radius: 6px; backdrop-filter: blur(4px); font-weight: 600; }
+        /* 豆瓣式筛选栏 (Tag Cloud) */
+        .filter-bar { margin-bottom: 30px; display: none; }
+        .filter-group { display: flex; flex-wrap: wrap; gap: 15px; align-items: baseline; margin-bottom: 15px; font-size: 14px; }
+        .filter-label { color: #999; font-size: 13px; margin-right: 5px; }
+        .tag { cursor: pointer; padding: 3px 8px; border-radius: 4px; color: var(--db-link); }
+        .tag:hover { background: #eef4ee; color: var(--db-green); }
+        .tag.active { background: var(--db-green); color: #fff; }
 
-        /* 播放记录 */
-        .history-row { display: flex; gap: 15px; overflow-x: auto; padding: 5px 0 15px; scroll-behavior: smooth; }
-        .hist-card { flex: 0 0 210px; background: #fff; padding: 12px; border-radius: 12px; cursor: pointer; border: 1px solid #e2e8f0; transition: 0.2s; position: relative; }
-        .hist-card:hover { border-color: var(--main); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        /* 标题栏 */
+        .section-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; border-bottom: 1px solid #eaeaea; padding-bottom: 10px; }
+        .section-title { font-size: 20px; font-weight: 600; color: #111; }
         
-        /* 播放器全屏层 */
-        #player-page { position: fixed; inset: 0; background: #f1f5f9; z-index: 2000; display: none; overflow-y: auto; }
-        .p-layout { display: grid; grid-template-columns: 1fr 400px; gap: 25px; max-width: 1700px; margin: 0 auto; padding: 25px; height: 95vh; box-sizing: border-box; }
-        .p-left { display: flex; flex-direction: column; gap: 20px; }
-        .v-box { background: #000; border-radius: 16px; overflow: hidden; position: relative; box-shadow: 0 25px 60px rgba(0,0,0,0.3); aspect-ratio: 16/9; flex-shrink: 0; }
+        /* 网格布局 */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 30px 20px; }
         
-        /* 播放器左上角详情 */
-        #v-status { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.6); color: #fff; padding: 6px 14px; border-radius: 30px; font-size: 12px; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.15); pointer-events: none; display: flex; align-items: center; gap: 8px; }
-        #v-status span { width: 6px; height: 6px; background: #2ecc71; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px #2ecc71; }
+        /* 书影音卡片 (优雅版) */
+        .card { cursor: pointer; transition: 0.2s; }
+        .card:hover .poster { box-shadow: 0 5px 15px rgba(0,0,0,0.2); transform: translateY(-3px); }
+        .poster-wrap { position: relative; padding-top: 145%; border-radius: 4px; overflow: hidden; background: #e0e0e0; margin-bottom: 10px; }
+        .poster { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
+        .rate-badge { position: absolute; bottom: 0; right: 0; background: rgba(255,166,0,0.9); color: #fff; font-size: 11px; padding: 2px 5px; border-top-left-radius: 4px; font-weight: bold; }
         
-        /* 侧边栏：线路与选集 */
-        .side-panel { background: #fff; border-radius: 16px; display: flex; flex-direction: column; border: 1px solid #e2e8f0; overflow: hidden; height: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.03); }
-        
-        .line-bar { padding: 15px; background: #fff; border-bottom: 1px dashed #e2e8f0; display: flex; gap: 10px; overflow-x: auto; flex-shrink: 0; }
-        .line-btn { padding: 6px 14px; background: #ecfdf5; color: #059669; border: 1px solid #d1fae5; border-radius: 8px; font-size: 12px; cursor: pointer; white-space: nowrap; font-weight: 700; transition: 0.2s; }
-        .line-btn.active { background: #059669; color: #fff; border-color: #059669; box-shadow: 0 2px 5px rgba(5, 150, 105, 0.3); }
+        .card-title { font-size: 14px; line-height: 1.4; color: #37a; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin-bottom: 4px; font-weight: 500; }
+        .card-sub { font-size: 12px; color: #999; }
 
-        .range-bar { padding: 12px; display: flex; gap: 8px; overflow-x: auto; background: #f8fafc; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; }
-        .range-btn { padding: 6px 12px; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 11px; cursor: pointer; white-space: nowrap; transition: 0.2s; }
-        .range-btn.active { background: var(--main); color: #fff; border-color: var(--main); }
+        /* 详情/播放页 (杂志布局) */
+        #detail-view { display: none; background: #fff; min-height: 100vh; position: fixed; inset: 0; z-index: 2000; overflow-y: auto; }
+        .detail-nav { padding: 15px 4vw; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 10px; color: var(--db-green); font-weight: bold; cursor: pointer; position: sticky; top: 0; background: #fff; z-index: 10; }
         
-        .ep-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 15px; overflow-y: auto; flex: 1; align-content: start; }
-        .ep-item { background: #f1f5f9; padding: 12px 0; text-align: center; border-radius: 10px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; color: #475569; }
-        .ep-item:hover { background: #e2e8f0; color: #000; }
-        .ep-item.active { background: var(--main); color: #fff; box-shadow: 0 4px 10px rgba(108, 92, 231, 0.3); }
+        .detail-body { max-width: 1100px; margin: 40px auto; padding: 0 20px; display: grid; grid-template-columns: 2fr 1fr; gap: 50px; }
+        
+        .v-container { margin-bottom: 30px; border-radius: 4px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); background: #000; }
+        
+        .meta-info h1 { font-size: 26px; margin: 0 0 10px 0; color: #111; }
+        .meta-year { color: #999; font-weight: normal; font-size: 20px; }
+        .meta-tags { margin-bottom: 20px; display: flex; gap: 10px; }
+        .meta-tag { background: #f5f5f5; padding: 2px 8px; border-radius: 10px; color: #494949; font-size: 12px; }
+        
+        /* 选集器 (豆瓣风格) */
+        .ep-box { margin-top: 30px; }
+        .ep-head { font-size: 16px; color: var(--db-green); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .line-sw { display: flex; gap: 10px; margin-bottom: 15px; }
+        .line-btn { font-size: 12px; padding: 4px 10px; border: 1px solid #ddd; border-radius: 3px; color: #666; cursor: pointer; }
+        .line-btn.active { border-color: var(--db-green); color: var(--db-green); background: #f0f9f0; }
 
-        /* 设置区 (重点优化) */
-        .v-controls { background: #fff; padding: 25px; border-radius: 16px; border: 1px solid #e2e8f0; flex-grow: 1; display: flex; flex-direction: column; }
-        .setting-box { background: #f8fafc; border-radius: 12px; padding: 15px; margin-top: 15px; border: 1px solid #e2e8f0; }
-        .set-row { display: flex; gap: 20px; align-items: center; font-size: 13px; color: #475569; font-weight: 600; flex-wrap: wrap; }
-        .set-input { width: 50px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; font-weight: bold; color: var(--main); outline: none; }
-        .set-input:focus { border-color: var(--main); }
+        .ep-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 8px; max-height: 300px; overflow-y: auto; }
+        .ep-item { background: #f8f8f8; text-align: center; padding: 8px 0; font-size: 12px; cursor: pointer; color: #333; transition: 0.2s; border-radius: 2px; }
+        .ep-item:hover { background: #eee; }
+        .ep-item.active { background: var(--db-green); color: #fff; }
+
+        .desc-text { font-size: 14px; line-height: 1.8; color: #333; margin-top: 20px; }
         
-        .mgr-btn { background: #fffbeb !important; color: #b45309 !important; border: 1px solid #fde68a !important; }
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 5000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+        /* 侧边栏 */
+        .side-title { font-size: 14px; color: #007722; margin-bottom: 15px; font-weight: bold; }
+        .hist-item { padding: 10px 0; border-bottom: 1px dashed #eee; font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; }
+        .hist-item:hover { color: var(--db-green); }
+        
+        /* 设置面板 */
+        .setting-bar { background: #f9f9f9; padding: 15px; border-radius: 4px; margin-top: 20px; display: flex; gap: 20px; align-items: center; font-size: 13px; color: #666; }
+        .setting-bar input { width: 40px; text-align: center; border: 1px solid #ddd; border-radius: 3px; padding: 2px; }
+
+        /* 模态框 */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; z-index: 5000; align-items: center; justify-content: center; }
+        .modal-box { background: #fff; width: 400px; padding: 30px; border-radius: 8px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
 
 <header>
     <div class="logo" onclick="location.reload()">JOE TV</div>
-    <div class="nav" id="main-nav">
-        <div class="active" onclick="route('home', this)">🏠 首页</div>
-        <div onclick="route('1', this)">🎬 热门电影</div>
-        <div onclick="route('2', this)">📺 同步剧集</div>
-        <div onclick="route('3', this)">🎋 动漫番剧</div>
-        <div onclick="route('short', this)">📱 热门短剧</div>
-        <div class="mgr-btn" onclick="toggleModal(true)">⚙️ 线路源</div>
+    <div class="search-area">
+        <input type="text" id="kw" placeholder="搜索电影、电视剧、综艺、动漫..." onkeydown="if(event.keyCode==13) search()">
     </div>
-    <div class="search-box">
-        <input type="text" id="kw" placeholder="搜影片 / 短剧..." onkeydown="if(event.keyCode==13) search()">
+    <div class="nav-links">
+        <div onclick="switchTab('home')" class="active" id="nav-home">首页</div>
+        <div onclick="switchTab('movie')" id="nav-movie">电影</div>
+        <div onclick="switchTab('tv')" id="nav-tv">剧集</div>
+        <div onclick="switchTab('anime')" id="nav-anime">动漫</div>
+        <div onclick="openMgr()" class="mgr">源管理</div>
     </div>
 </header>
 
-<div class="container" id="main-view"></div>
-
-<div id="player-page">
-    <div style="padding: 0 25px 15px; font-weight: 800; color: var(--main); cursor: pointer; display: flex; align-items: center; gap: 5px;" onclick="closePlayer()">
-        <span>🔙</span> 返回列表
+<div class="container" id="main-view">
     </div>
-    <div class="p-layout">
-        <div class="p-left">
-            <div class="v-box">
-                <div id="v-status"><span></span> 初始化...</div>
+
+<div id="detail-view">
+    <div class="detail-nav" onclick="closeDetail()">
+        <span>&lt; 返回首页</span>
+    </div>
+    <div class="detail-body">
+        <div class="main-col">
+            <div class="meta-info">
+                <h1 id="d-title">标题 <span id="d-year" class="meta-year">(2024)</span></h1>
+                <div class="meta-tags" id="d-tags"></div>
+            </div>
+
+            <div class="v-container">
                 <video id="v-core" class="video-js vjs-big-play-centered vjs-16-9" controls preload="auto"></video>
             </div>
-            <div class="v-controls">
-                <h2 id="v-name" style="margin:0; letter-spacing: -0.5px; font-size: 22px;"></h2>
-                
-                <div class="setting-box">
-                    <div style="margin-bottom:10px; font-size:12px; color:#94a3b8; font-weight:bold; text-transform:uppercase;">播放设置 (自动记忆)</div>
-                    <div class="set-row">
-                        <span>🚀 跳过片头: <input type="number" id="sk-start" value="0" class="set-input" onchange="saveConf()"> 秒</span>
-                        <span>🏁 跳过片尾: <input type="number" id="sk-end" value="0" class="set-input" onchange="saveConf()"> 秒</span>
-                        <label style="cursor:pointer; display:flex; align-items:center; gap:5px; margin-left:auto;">
-                            <input type="checkbox" id="at-next" checked onchange="saveConf()" style="accent-color:var(--main); transform:scale(1.2);"> 
-                            自动连播
-                        </label>
-                    </div>
+            
+            <div class="setting-bar">
+                <span>跳过片头 <input type="number" id="sk-s" value="0" onchange="saveConf()"> 秒</span>
+                <span>跳过片尾 <input type="number" id="sk-e" value="0" onchange="saveConf()"> 秒</span>
+                <label><input type="checkbox" id="auto-next" checked onchange="saveConf()"> 自动连播</label>
+            </div>
+
+            <div class="ep-box">
+                <div class="ep-head">
+                    <span>选择线路与集数</span>
+                    <span id="cur-status" style="font-size:12px; color:#999;"></span>
                 </div>
-                
-                <p id="v-desc" style="font-size:14px; color:#64748b; margin-top:20px; line-height:1.7; max-height:120px; overflow-y:auto;"></p>
+                <div class="line-sw" id="line-list"></div>
+                <div class="ep-list" id="ep-list"></div>
+            </div>
+
+            <div style="margin-top:40px;">
+                <div class="section-title" style="font-size:16px; margin-bottom:10px; color:#007722;">剧情简介 · · · · · ·</div>
+                <div id="d-desc" class="desc-text"></div>
             </div>
         </div>
-        
-        <div class="side-panel">
-            <div style="padding:15px; font-weight:800; font-size:14px; color:#334155; border-bottom:1px solid #f1f5f9; background:#fff;">📡 线路切换</div>
-            <div id="line-bar" class="line-bar"></div>
-            <div id="r-bar" class="range-bar"></div>
-            <div id="e-grid" class="ep-grid"></div>
+
+        <div class="side-col">
+            <div class="side-title">观看记录 · · · · · · <span style="font-weight:normal; color:#999; cursor:pointer; float:right" onclick="clearHist()">清空</span></div>
+            <div id="hist-list"></div>
+            
+            <div class="side-title" style="margin-top:40px;">数据来源</div>
+            <div style="font-size:12px; color:#666;" id="source-name"></div>
         </div>
     </div>
 </div>
 
-<div id="mgr-modal" class="modal">
-    <div style="background:#fff; width:500px; padding:30px; border-radius:20px; box-shadow:0 25px 60px rgba(0,0,0,0.3);">
-        <h3 style="margin:0 0 20px 0; color:#1e293b;">配置采集源 API</h3>
-        <div id="api-list" style="max-height:180px; overflow-y:auto; margin-bottom:20px; border:1px solid #e2e8f0; border-radius:12px; background:#f8fafc;"></div>
-        <textarea id="api-in" style="width:100%; height:80px; padding:12px; border-radius:12px; border:1px solid #cbd5e1; box-sizing:border-box; font-family:monospace; font-size:13px;" placeholder="粘贴 Maccms JSON API 地址 (例如: https://example.com/api.php/provide/vod/)"></textarea>
-        <div style="display:flex; gap:10px; margin-top:20px;">
-            <button onclick="importApis()" style="flex:1; padding:12px; background:var(--main); color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer; transition:0.2s;">保存并连接</button>
-            <button onclick="toggleModal(false)" style="flex:1; background:#f1f5f9; border:none; color:#64748b; border-radius:10px; cursor:pointer; font-weight:bold;">取消</button>
-        </div>
+<div id="mgr-modal" class="modal-overlay">
+    <div class="modal-box">
+        <h3 style="margin-top:0; color:#007722;">配置数据源 (JSON API)</h3>
+        <textarea id="api-in" style="width:100%; height:80px; padding:10px; border:1px solid #ddd; margin:10px 0; font-family:monospace;" placeholder="粘贴 API 地址..."></textarea>
+        <button onclick="importApis()" style="width:100%; background:#007722; color:#fff; border:none; padding:10px; cursor:pointer;">保存</button>
+        <button onclick="document.getElementById('mgr-modal').style.display='none'" style="width:100%; background:none; border:none; padding:10px; color:#999; cursor:pointer;">取消</button>
+        <div id="api-display" style="margin-top:15px; font-size:12px; color:#666; max-height:100px; overflow-y:auto;"></div>
     </div>
 </div>
 
 <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 <script>
     const player = videojs('v-core');
-    let apis = JSON.parse(localStorage.getItem('joe_v20_apis') || '[]');
-    // 默认配置：跳过片头0秒，跳过片尾0秒，自动连播开启
-    let config = JSON.parse(localStorage.getItem('joe_v20_conf') || '{"skipStart":0,"skipEnd":0,"auto":true}');
-    let history = JSON.parse(localStorage.getItem('joe_v20_hist') || '[]');
+    let apis = JSON.parse(localStorage.getItem('joe_v21_apis') || '[]');
+    let config = JSON.parse(localStorage.getItem('joe_v21_conf') || '{"skipS":0,"skipE":0,"auto":true}');
+    let history = JSON.parse(localStorage.getItem('joe_v21_hist') || '[]');
+    let categories = []; // 存储抓取的全部分类
     
-    let currentVod = null; 
-    let currentLines = []; 
-    let activeLineIdx = 0;
-    let isSwitchingEp = false; // 防止片尾重复触发
+    // 运行时状态
+    let curVod = null;
+    let curLines = [];
+    let activeLine = 0;
+    
+    // --- 核心初始化 ---
+    async function init() {
+        if(!apis.length) { openMgr(); return; }
+        // 1. 尝试抓取分类表 (Mapping System)
+        try {
+            const res = await fetch(`${apis[0].url}?ac=list`).then(r => r.json());
+            categories = res.class || [];
+        } catch(e) { console.log('分类抓取失败，使用默认'); }
+        
+        switchTab('home');
+        renderHist();
+    }
 
-    // --- 路由系统 ---
-    async function route(id, el) {
-        if(el) {
-            document.querySelectorAll('.nav div').forEach(d => d.classList.remove('active'));
-            el.classList.add('active');
-        }
+    // --- 豆瓣式路由与筛选 ---
+    let currentTab = 'home';
+    
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.nav-links div').forEach(d => d.classList.remove('active'));
+        document.getElementById(`nav-${tab}`)?.classList.add('active');
+        
         const view = document.getElementById('main-view');
         
-        if(id === 'home') {
+        if(tab === 'home') {
             view.innerHTML = `
-                <div class="row-title">🕒 播放记录 <span style="font-size:12px; color:#94a3b8; font-weight:normal; cursor:pointer; margin-left:auto; border:1px solid #e2e8f0; padding:2px 8px; border-radius:10px;" onclick="clearHist()">清空记录</span></div>
-                <div class="history-row" id="h-row"></div>
-                <div class="row-title">🆕 最新入库</div><div class="grid" id="g-new"></div>
-                <div class="row-title">🔥 热门短剧</div><div class="grid" id="g-short"></div>
+                <div class="section-header"><div class="section-title">正在热播</div></div>
+                <div class="grid" id="g-hot"></div>
+                <div class="section-header" style="margin-top:40px;"><div class="section-title">最新上映</div></div>
+                <div class="grid" id="g-new"></div>
             `;
-            renderHistory();
+            fetchList('g-hot', 'pg=1&order=desc&by=hits', 12); // 尝试按热度
             fetchList('g-new', '', 12);
-            fetchList('g-short', '短剧', 12);
         } else {
-            view.innerHTML = `<div class="row-title">正在获取资源...</div><div class="grid" id="g-cat"></div>`;
-            fetchList('g-cat', id === 'short' ? '短剧' : id, 40);
+            // 智能分类映射：构建 Tag Cloud
+            const filterHtml = buildFilterHtml(tab);
+            view.innerHTML = `
+                ${filterHtml}
+                <div class="section-header"><div class="section-title">${getTabName(tab)}</div></div>
+                <div class="grid" id="g-cat"></div>
+            `;
+            // 默认加载该大类的第一个分类，或者搜索该大类关键词
+            const defaultId = findDefaultId(tab);
+            if(defaultId) filterClick(defaultId, tab);
+            else fetchList('g-cat', `wd=${getTabName(tab)}`, 24);
         }
     }
 
+    // 智能构建筛选器：将 API 杂乱的分类整理归纳
+    function buildFilterHtml(tab) {
+        if(!categories.length) return '';
+        const keywords = {
+            'movie': ['电影', '片'],
+            'tv': ['剧', '连续'],
+            'anime': ['漫', '画']
+        };
+        const exclude = {
+            'movie': ['剧', '漫'],
+            'tv': ['片', '漫'],
+            'anime': ['剧', '片']
+        };
+        
+        // 简单的关键词匹配算法
+        const subCats = categories.filter(c => {
+            const name = c.type_name;
+            const isMatch = keywords[tab].some(k => name.includes(k));
+            const isExclude = exclude[tab].some(k => name.includes(k));
+            return isMatch && !isExclude;
+        });
+
+        if(!subCats.length) return '';
+
+        return `
+            <div class="filter-bar" style="display:block">
+                <div class="filter-group">
+                    <span class="filter-label">按类型:</span>
+                    <span class="tag active" onclick="fetchList('g-cat', 'wd=${getTabName(tab)}', 24); hlTag(this)">全部</span>
+                    ${subCats.map(c => `<span class="tag" onclick="fetchList('g-cat', '${c.type_id}', 24); hlTag(this)">${c.type_name.replace(/电影|电视剧|连续剧/g,'')}</span>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function hlTag(el) {
+        el.parentNode.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    function getTabName(t) { return {movie:'电影', tv:'剧集', anime:'动漫'}[t] || ''; }
+    function findDefaultId(t) { return null; } // 默认不选中具体ID，而是搜大类
+
+    // --- 数据获取与渲染 ---
     async function fetchList(gid, param, num) {
-        if(!apis.length) { document.getElementById('main-view').innerHTML = "<div style='padding:50px;text-align:center;'>请先点击右上角“线路源”添加接口</div>"; return; }
         const isId = !isNaN(param) && param !== '';
-        const url = `${apis[0].url}?ac=detail&${isId ? 't='+param : 'wd='+param}`;
+        // 兼容 API：如果 param 包含 order/pg 等参数直接拼，否则拼 t= 或 wd=
+        let query = isId ? `t=${param}` : (param.includes('=') ? param : `wd=${param}`);
+        
+        const url = `${apis[0].url}?ac=detail&${query}`;
+        document.getElementById(gid).innerHTML = '<div style="color:#999; font-size:12px;">正在加载内容...</div>';
+        
         try {
             const res = await fetch(url).then(r => r.json());
             renderGrid(gid, res.list.slice(0, num));
@@ -195,14 +293,17 @@
     }
 
     function renderGrid(gid, list) {
-        const g = document.getElementById(gid);
-        if(!g || !list) return;
-        if(gid === 'g-cat') document.querySelector('.row-title').innerText = "资源列表";
-        g.innerHTML = list.map(v => `
-            <div class="card" onclick="reqDetail('${v.vod_id}')">
-                <div class="tag">${v.vod_remarks || '高清'}</div>
-                <img src="${v.vod_pic}">
-                <div class="info">${v.vod_name}</div>
+        const el = document.getElementById(gid);
+        if(!list || !list.length) { el.innerHTML = '暂无数据'; return; }
+        
+        el.innerHTML = list.map(v => `
+            <div class="card" onclick="openDetail('${v.vod_id}')">
+                <div class="poster-wrap">
+                    <img class="poster" src="${v.vod_pic}" onerror="this.style.background='#eee'">
+                    <div class="rate-badge">${v.vod_score || '8.0'}</div>
+                </div>
+                <div class="card-title">${v.vod_name}</div>
+                <div class="card-sub">${v.vod_year || ''} / ${v.vod_area || ''}</div>
             </div>
         `).join('');
     }
@@ -210,216 +311,166 @@
     async function search() {
         const kw = document.getElementById('kw').value;
         if(!kw) return;
-        const view = document.getElementById('main-view');
-        view.innerHTML = `<div class="row-title">🔎 "${kw}" 全网搜索结果</div><div class="grid" id="g-search"></div>`;
-        apis.forEach(api => {
-            fetch(`${api.url}?ac=detail&wd=${encodeURIComponent(kw)}`)
-                .then(r => r.json())
-                .then(res => {
-                    const g = document.getElementById('g-search');
-                    if(g) g.innerHTML += res.list.map(v => `
-                        <div class="card" onclick="reqDetail('${v.vod_id}')">
-                            <div class="tag">${api.name}</div>
-                            <img src="${v.vod_pic}">
-                            <div class="info">${v.vod_name}</div>
-                        </div>`).join('');
-                });
-        });
+        switchTab('home'); // 重置视图
+        document.getElementById('main-view').innerHTML = `
+            <div class="section-header"><div class="section-title">搜索: "${kw}"</div></div>
+            <div class="grid" id="g-search"></div>
+        `;
+        // 多源聚合
+        let allRes = [];
+        for(let api of apis) {
+            try {
+                const res = await fetch(`${api.url}?ac=detail&wd=${encodeURIComponent(kw)}`).then(r => r.json());
+                if(res.list) allRes = allRes.concat(res.list);
+            } catch(e){}
+        }
+        renderGrid('g-search', allRes);
     }
 
-    // --- 播放核心 (智能跳过升级版) ---
-    async function reqDetail(id, resumeUrl=null, resumeTime=0) {
+    // --- 详情与播放 (杂志风) ---
+    async function openDetail(id, resumeUrl=null, resumeTime=0) {
         const res = await fetch(`${apis[0].url}?ac=detail&ids=${id}`).then(r => r.json());
-        currentVod = res.list[0];
+        curVod = res.list[0];
         
+        // 填充元数据
+        document.getElementById('d-title').innerText = curVod.vod_name;
+        document.getElementById('d-year').innerText = `(${curVod.vod_year || '未知年份'})`;
+        document.getElementById('d-desc').innerHTML = curVod.vod_content;
+        document.getElementById('d-tags').innerHTML = `<span class="meta-tag">${curVod.vod_area}</span><span class="meta-tag">${curVod.vod_class || curVod.type_name}</span>`;
+        document.getElementById('source-name').innerText = apis[0].name;
+        
+        // 填充设置
+        document.getElementById('sk-s').value = config.skipS;
+        document.getElementById('sk-e').value = config.skipE;
+        document.getElementById('auto-next').checked = config.auto;
+
         // 解析线路
-        const froms = currentVod.vod_play_from.split('$$$');
-        const urls = currentVod.vod_play_url.split('$$$');
-        currentLines = froms.map((name, index) => ({
-            name: name,
-            eps: urls[index].split('#').filter(s => s.includes('$'))
-        }));
+        const froms = curVod.vod_play_from.split('$$$');
+        const urls = curVod.vod_play_url.split('$$$');
+        curLines = froms.map((n, i) => ({ name: n, eps: urls[i].split('#').filter(s=>s.includes('$')) }));
         
-        activeLineIdx = 0;
+        // 线路选择
+        activeLine = 0;
         if(resumeUrl) {
-            const foundIdx = currentLines.findIndex(l => l.eps.some(e => e.includes(resumeUrl)));
-            if(foundIdx !== -1) activeLineIdx = foundIdx;
+            const idx = curLines.findIndex(l => l.eps.some(e => e.includes(resumeUrl)));
+            if(idx !== -1) activeLine = idx;
         }
 
-        openPlayerUI(resumeUrl, resumeTime);
+        renderLines();
+        renderEps(resumeUrl, resumeTime);
+        
+        document.getElementById('detail-view').style.display = 'block';
+        document.body.style.overflow = 'hidden'; // 锁住背景滚动
     }
 
-    function openPlayerUI(resumeUrl, resumeTime) {
-        document.getElementById('player-page').style.display = 'block';
-        document.getElementById('v-name').innerText = currentVod.vod_name;
-        document.getElementById('v-desc').innerText = currentVod.vod_content.replace(/<[^>]+>/g, '');
-        
-        // 加载配置到输入框
-        document.getElementById('sk-start').value = config.skipStart;
-        document.getElementById('sk-end').value = config.skipEnd;
-        document.getElementById('at-next').checked = config.auto;
-        
-        renderLineButtons();
-        renderRanges(resumeUrl, resumeTime);
-    }
-
-    function renderLineButtons() {
-        const bar = document.getElementById('line-bar');
-        bar.innerHTML = currentLines.map((line, idx) => `
-            <div class="line-btn ${idx === activeLineIdx ? 'active' : ''}" 
-                 onclick="switchLine(${idx})">${line.name}</div>
+    function renderLines() {
+        document.getElementById('line-list').innerHTML = curLines.map((l, i) => `
+            <div class="line-btn ${i===activeLine?'active':''}" onclick="activeLine=${i};renderLines();renderEps()">${l.name}</div>
         `).join('');
     }
 
-    function switchLine(idx) {
-        activeLineIdx = idx;
-        renderLineButtons();
-        renderRanges();
-    }
-
-    function renderRanges(resumeUrl, resumeTime) {
-        const bar = document.getElementById('r-bar');
-        bar.innerHTML = "";
-        const currentEps = currentLines[activeLineIdx].eps;
-        const size = 50;
-
-        for(let i=0; i < currentEps.length; i += size) {
-            const end = Math.min(i + size, currentEps.length);
-            const btn = document.createElement('div');
-            btn.className = 'range-btn';
-            btn.innerText = `${i+1}-${end}`;
-            btn.onclick = () => {
-                document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                renderEps(i, end, resumeUrl, resumeTime);
-            };
-            bar.appendChild(btn);
-        }
-        const initialPage = resumeUrl ? Math.floor(currentEps.findIndex(e => e.includes(resumeUrl)) / 50) : 0;
-        if(bar.children.length > 0) bar.children[initialPage >= 0 ? initialPage : 0].click();
-    }
-
-    function renderEps(start, end, resumeUrl, resumeTime) {
-        const grid = document.getElementById('e-grid');
-        grid.innerHTML = "";
-        const currentEps = currentLines[activeLineIdx].eps;
+    function renderEps(resumeUrl, resumeTime) {
+        const eps = curLines[activeLine].eps;
+        const box = document.getElementById('ep-list');
+        // 物理隔离防止过多
+        box.innerHTML = eps.map(e => {
+            const [name, url] = e.split('$');
+            return `<div class="ep-item ${resumeUrl===url?'active':''}" onclick="play('${url}', '${name}', 0)">${name}</div>`;
+        }).join('');
         
-        currentEps.slice(start, end).forEach(item => {
-            const [name, url] = item.split('$');
-            const d = document.createElement('div');
-            d.className = 'ep-item' + (resumeUrl === url ? ' active' : '');
-            d.innerText = name.includes('第') ? name : `第${name}集`;
-            d.onclick = () => {
-                document.querySelectorAll('.ep-item').forEach(i => i.classList.remove('active'));
-                d.classList.add('active');
-                play(url, name, resumeTime);
-                resumeTime = 0;
-            };
-            grid.appendChild(d);
-            if(resumeUrl === url) d.scrollIntoView({block: 'center'});
-        });
-        if(resumeUrl && grid.querySelector('.active')) grid.querySelector('.active').click();
+        // 默认不自动播，点击集数才播，除非有历史记录
+        if(resumeUrl) play(resumeUrl, eps.find(e=>e.includes(resumeUrl)).split('$')[0], resumeTime);
     }
 
     function play(url, name, time) {
-        isSwitchingEp = false;
-        const lineName = currentLines[activeLineIdx].name;
-        document.getElementById('v-status').innerHTML = `<span></span> 线路: ${lineName} &nbsp;|&nbsp; 正在播放: ${name}`;
+        // 更新 UI 状态
+        document.querySelectorAll('.ep-item').forEach(d => d.classList.remove('active'));
+        const target = Array.from(document.querySelectorAll('.ep-item')).find(el => el.innerText === name);
+        if(target) target.classList.add('active');
+
+        document.getElementById('cur-status').innerText = `正在播放: ${name}`;
         
         player.src({ src: url, type: 'application/x-mpegURL' });
         player.play();
         
-        // 片头跳过逻辑
+        // 跳过处理
         player.off('loadedmetadata');
         player.one('loadedmetadata', () => {
             if(time > 0) player.currentTime(time);
-            else if(config.skipStart > 0) player.currentTime(config.skipStart);
+            else if(config.skipS > 0) player.currentTime(config.skipS);
         });
-
-        // 智能监控：历史记录 + 片尾跳过
+        
+        // 监听
         player.off('timeupdate');
         player.on('timeupdate', () => {
-            const curr = player.currentTime();
-            const dur = player.duration();
+            const t = player.currentTime();
+            const d = player.duration();
+            if(t > 10) saveHist(name, url, t);
             
-            // 记录进度 (每集超过10秒才记录)
-            if(curr > 10) saveHistory(name, url, curr);
-            
-            // 片尾跳过核心逻辑
-            if(config.auto && config.skipEnd > 0 && dur > 0 && !isSwitchingEp) {
-                // 如果剩余时间小于设定值，且视频总长度合理(防止短视频误判)
-                if((dur - curr) < config.skipEnd && dur > (config.skipStart + config.skipEnd + 30)) {
-                    isSwitchingEp = true; // 锁定防止重复触发
-                    triggerNext();
-                }
+            // 跳片尾
+            if(config.auto && config.skipE > 0 && d > 0 && (d - t < config.skipE)) {
+                if(target && target.nextSibling) target.nextSibling.click();
             }
         });
         
-        // 自然结束连播
         player.off('ended');
-        player.on('ended', () => { if(config.auto && !isSwitchingEp) triggerNext(); });
+        player.on('ended', () => {
+            if(config.auto && target && target.nextSibling) target.nextSibling.click();
+        });
     }
 
-    function triggerNext() {
-        const next = document.querySelector('.ep-item.active')?.nextSibling;
-        if(next) {
-            // 这里给个轻微的Toast提示体验更好，不过为了简洁直接切
-            next.click();
-        }
+    function closeDetail() {
+        player.pause();
+        document.getElementById('detail-view').style.display = 'none';
+        document.body.style.overflow = 'auto';
+        renderHist();
     }
 
-    // --- 数据持久化 ---
-    function saveHistory(epName, epUrl, time) {
-        history = history.filter(h => h.id !== currentVod.vod_id);
-        history.unshift({ id: currentVod.vod_id, name: currentVod.vod_name, epName, epUrl, time });
-        localStorage.setItem('joe_v20_hist', JSON.stringify(history.slice(0, 20)));
+    // --- 历史与配置 ---
+    function saveHist(epName, url, t) {
+        history = history.filter(h => h.id !== curVod.vod_id);
+        history.unshift({ id: curVod.vod_id, name: curVod.vod_name, epName, url, t });
+        localStorage.setItem('joe_v21_hist', JSON.stringify(history.slice(0, 20)));
+        renderHist(); // 实时更新侧边栏
     }
     
-    function renderHistory() {
-        const row = document.getElementById('h-row');
-        if(!history.length) { row.innerHTML = "<div style='color:#cbd5e1; font-size:13px; padding:10px;'>暂无观看记录</div>"; return; }
-        row.innerHTML = history.slice(0, 10).map(h => `
-            <div class="hist-card" onclick="reqDetail('${h.id}', '${h.epUrl}', ${h.time})">
-                <div style="color:#1e293b; font-weight:bold; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:13px;">${h.name}</div>
-                <div style="color:#64748b; font-size:11px; margin-top:6px; display:flex; justify-content:space-between;">
-                    <span>${h.epName}</span>
-                    <span>${Math.floor(h.time/60)}分</span>
-                </div>
+    function renderHist() {
+        const box = document.getElementById('hist-list');
+        if(!history.length) { box.innerHTML = '<div style="color:#ccc; font-size:12px;">暂无足迹</div>'; return; }
+        box.innerHTML = history.slice(0, 10).map(h => `
+            <div class="hist-item" onclick="openDetail('${h.id}', '${h.url}', ${h.t})">
+                <span>${h.name}</span>
+                <span style="color:#999; font-size:11px;">${Math.floor(h.t/60)}分</span>
             </div>
         `).join('');
     }
-    
-    function clearHist() { history=[]; localStorage.removeItem('joe_v20_hist'); renderHistory(); }
-    
-    function saveConf() {
-        config.skipStart = parseInt(document.getElementById('sk-start').value) || 0;
-        config.skipEnd = parseInt(document.getElementById('sk-end').value) || 0;
-        config.auto = document.getElementById('at-next').checked;
-        localStorage.setItem('joe_v20_conf', JSON.stringify(config));
-    }
-    
-    function toggleModal(show) { document.getElementById('mgr-modal').style.display = show ? 'flex' : 'none'; if(show) renderApiList(); }
-    async function importApis() {
-        const urls = document.getElementById('api-in').value.split('\n').filter(u => u.trim());
-        for(let u of urls) {
-            try {
-                const res = await fetch(u.trim() + "?ac=list").then(r => r.json());
-                apis.push({ name: res.source?.name || '未知源', url: u.trim() });
-            } catch(e) {}
-        }
-        localStorage.setItem('joe_v20_apis', JSON.stringify(apis));
-        location.reload();
-    }
-    function renderApiList() { 
-        document.getElementById('api-list').innerHTML = apis.map((a, i) => `
-            <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee; font-size:12px;">
-                <span>⚡ ${a.name}</span>
-                <span onclick="apis.splice(${i},1);localStorage.setItem('joe_v20_apis',JSON.stringify(apis));renderApiList()" style="color:red;cursor:pointer;">删除</span>
-            </div>`).join(''); 
-    }
-    function closePlayer() { player.pause(); document.getElementById('player-page').style.display = 'none'; route('home'); }
+    function clearHist() { history=[]; localStorage.removeItem('joe_v21_hist'); renderHist(); }
 
-    window.onload = () => route('home');
+    function saveConf() {
+        config.skipS = parseInt(document.getElementById('sk-s').value) || 0;
+        config.skipE = parseInt(document.getElementById('sk-e').value) || 0;
+        config.auto = document.getElementById('auto-next').checked;
+        localStorage.setItem('joe_v21_conf', JSON.stringify(config));
+    }
+
+    // --- 源管理 ---
+    function openMgr() { 
+        document.getElementById('mgr-modal').style.display = 'flex'; 
+        document.getElementById('api-display').innerHTML = apis.map(a => `<div>✔ ${a.name}</div>`).join('');
+    }
+    async function importApis() {
+        const val = document.getElementById('api-in').value;
+        if(val) {
+            try {
+                const res = await fetch(val.trim() + "?ac=list").then(r => r.json());
+                apis = [{name: res.source?.name||'新数据源', url: val.trim()}]; // 简单版：覆盖模式
+                localStorage.setItem('joe_v21_apis', JSON.stringify(apis));
+                location.reload();
+            } catch(e) { alert('API 无效'); }
+        }
+    }
+
+    window.onload = init;
 </script>
 </body>
 </html>
