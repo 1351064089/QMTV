@@ -4,45 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>JOE TV V21.11 | 极速搜索+流畅播放</title>
+    <title>JOE TV V21.12 | 稳定全能版</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
         :root { --main: #6c5ce7; --bg: #f4f7f6; --text: #2d3436; }
         body { margin: 0; background: var(--bg); color: var(--text); font-family: sans-serif; overflow-x: hidden; }
+        
+        /* 导航 */
         header { position: sticky; top: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); display: flex; align-items: center; padding: 10px 20px; z-index: 1000; border-bottom: 1px solid #ddd; }
         .logo { font-size: 20px; font-weight: bold; color: var(--main); margin-right: 20px; cursor: pointer; }
         .nav { display: flex; gap: 8px; flex: 1; overflow-x: auto; scrollbar-width: none; }
-        .nav div { padding: 6px 15px; border-radius: 20px; cursor: pointer; font-size: 13px; background: #eee; white-space: nowrap; }
+        .nav div { padding: 6px 15px; border-radius: 20px; cursor: pointer; font-size: 13px; background: #eee; white-space: nowrap; font-weight: bold; }
         .nav .active { background: var(--main); color: #fff; }
         .mgr-btn { background: #fff3e0 !important; color: #e65100 !important; }
 
         .search-box input { padding: 8px 15px; border-radius: 20px; border: 1px solid #ddd; outline: none; width: 200px; }
 
+        /* 内容网格 */
         .container { max-width: 1600px; margin: 20px auto; padding: 0 15px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
         .card { background: #fff; border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.2s; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .card:hover { transform: scale(1.03); }
+        .card:hover { transform: translateY(-5px); }
         .card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
         .card .info { padding: 8px; text-align: center; font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .his-tag { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.7); color: #00ff00; font-size: 10px; padding: 2px 5px; border-radius: 3px; }
+        .his-tag { position: absolute; top: 5px; right: 5px; background: rgba(108, 92, 231, 0.9); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
 
-        /* 播放页 */
+        /* 播放页布局 */
         #player-page { position: fixed; inset: 0; background: #f4f4f4; z-index: 2000; display: none; overflow-y: auto; }
-        .p-layout { display: grid; grid-template-columns: 1fr 380px; gap: 20px; padding: 20px; }
-        .v-box { background: #000; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; position: relative; }
-        #v-details { position: absolute; top: 10px; left: 10px; color: #0f0; background: rgba(0,0,0,0.5); padding: 5px 10px; font-size: 11px; z-index: 5; pointer-events: none; border-radius: 4px; }
+        .p-layout { display: grid; grid-template-columns: 1fr 380px; gap: 20px; padding: 20px; max-width: 1600px; margin: 0 auto; }
+        .v-box { background: #000; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        #v-details { position: absolute; top: 15px; left: 15px; color: #00ff00; background: rgba(0,0,0,0.6); padding: 8px 12px; font-size: 11px; z-index: 10; pointer-events: none; border-radius: 6px; font-family: monospace; }
         
-        .side-panel { background: #fff; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; }
-        .tab-bar { display: flex; gap: 5px; padding: 10px; background: #f8f9fa; border-bottom: 1px solid #eee; overflow-x: auto; }
-        .tab-item { padding: 4px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 11px; cursor: pointer; white-space: nowrap; }
+        .side-panel { background: #fff; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #eee; }
+        .panel-title { padding: 12px; font-weight: bold; background: #f8f9fa; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        .tab-bar { display: flex; gap: 8px; padding: 10px; background: #fff; border-bottom: 1px solid #eee; overflow-x: auto; }
+        .tab-item { padding: 5px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 11px; cursor: pointer; white-space: nowrap; }
         .tab-item.active { background: var(--main); color: #fff; border-color: var(--main); }
-        .ep-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 15px; max-height: 500px; overflow-y: auto; }
-        .ep-btn { background: #f1f1f1; padding: 8px 0; text-align: center; font-size: 12px; border-radius: 5px; cursor: pointer; }
+        
+        .ep-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 15px; max-height: 400px; overflow-y: auto; }
+        .ep-btn { background: #f1f5f9; padding: 10px 0; text-align: center; font-size: 12px; border-radius: 6px; cursor: pointer; }
         .ep-btn.active { background: var(--main); color: #fff; }
 
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 3000; }
-        .modal-body { background: #fff; width: 450px; padding: 20px; border-radius: 15px; }
-        textarea { width: 100%; height: 120px; margin: 10px 0; box-sizing: border-box; }
+        /* 设置面板 */
+        .setting-card { background: #fff; border-radius: 12px; padding: 20px; margin-top: 20px; border: 1px solid #eee; }
+        .setting-row { display: flex; align-items: center; gap: 15px; margin-bottom: 10px; font-size: 13px; color: #666; }
+        .setting-row input { width: 60px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; }
+
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 3000; backdrop-filter: blur(4px); }
+        .modal-body { background: #fff; width: 450px; padding: 25px; border-radius: 15px; }
+        textarea { width: 100%; height: 120px; margin: 15px 0; border-radius: 8px; border: 1px solid #ddd; padding: 10px; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -55,29 +65,40 @@
         <div onclick="route('2', this)">剧集</div>
         <div onclick="route('3', this)">综艺</div>
         <div onclick="route('4', this)">动漫</div>
-        <div class="mgr-btn" onclick="toggleModal(true)">线路管理</div>
+        <div class="mgr-btn" onclick="toggleModal(true)">⚙️ 线路管理</div>
     </div>
-    <div class="search-box"><input type="text" id="kw" placeholder="搜索资源..." onkeydown="if(event.keyCode==13) doGlobalSearch()"></div>
+    <div class="search-box">
+        <input type="text" id="kw" placeholder="多源并发搜索..." onkeydown="if(event.keyCode==13) doGlobalSearch()">
+    </div>
 </header>
 
 <div class="container" id="main-view"></div>
 
 <div id="player-page">
-    <div style="padding:15px; color:var(--main); cursor:pointer; font-weight:bold;" onclick="closePlayer()">🔙 返回列表</div>
+    <div style="padding:15px 20px; color:var(--main); cursor:pointer; font-weight:bold; display: flex; align-items: center; gap: 5px;" onclick="closePlayer()">🔙 返回列表</div>
     <div class="p-layout">
-        <div>
+        <div class="p-main">
             <div class="v-box">
-                <div id="v-details">正在解码视频流...</div>
+                <div id="v-details">正在初始化解码器...</div>
                 <div id="v-wrapper"></div>
             </div>
-            <h3 id="v-title" style="margin:15px 0 5px 0;"></h3>
-            <div id="v-meta" style="font-size:12px; color:#666; margin-bottom:10px;"></div>
-            <p id="v-info" style="font-size:13px; color:#444; line-height:1.6;"></p>
+            
+            <div class="setting-card">
+                <h3 id="v-title" style="margin: 0 0 15px 0; color: var(--text);"></h3>
+                <div class="setting-row">
+                    <span>🎬 智能跳过：</span>
+                    片头 <input type="number" id="set-start" placeholder="秒" onchange="saveSettings()"> 秒
+                    片尾 <input type="number" id="set-end" placeholder="秒" onchange="saveSettings()"> 秒
+                    <label style="margin-left: 10px;"><input type="checkbox" id="set-auto" checked onchange="saveSettings()"> 自动连播</label>
+                </div>
+                <p id="v-info" style="font-size:13px; color:#666; line-height:1.7; border-top: 1px solid #eee; padding-top: 15px;"></p>
+            </div>
         </div>
+
         <div class="side-panel">
-            <div style="padding:10px; font-weight:bold; border-bottom:1px solid #eee;">线路切换</div>
+            <div class="panel-title">📡 线路切换</div>
             <div class="tab-bar" id="api-tabs"></div>
-            <div style="padding:10px; font-weight:bold; border-bottom:1px solid #eee;">选集</div>
+            <div class="panel-title">🔢 选集播放</div>
             <div class="tab-bar" id="range-tabs"></div>
             <div class="ep-grid" id="ep-grid"></div>
         </div>
@@ -86,24 +107,26 @@
 
 <div id="mgr-modal" class="modal">
     <div class="modal-body">
-        <h3>管理接口</h3>
-        <div id="api-mgr-list" style="max-height:150px; overflow-y:auto; font-size:12px; border:1px solid #eee; margin-bottom:10px;"></div>
-        <textarea id="api-input" placeholder="粘贴苹果CMS接口地址..."></textarea>
-        <button onclick="batchAdd()" style="width:100%; padding:10px; background:var(--main); color:#fff; border:none; border-radius:5px;">保存并刷新</button>
-        <button onclick="toggleModal(false)" style="width:100%; margin-top:5px; border:none; background:none; color:#999;">取消</button>
+        <h3 style="margin-top:0;">资源中心</h3>
+        <div id="api-mgr-list" style="max-height:150px; overflow-y:auto; border:1px solid #eee; border-radius:8px; font-size:12px; margin-bottom:10px;"></div>
+        <textarea id="api-input" placeholder="输入苹果CMS API地址，一行一个..."></textarea>
+        <button onclick="batchAdd()" style="width:100%; padding:12px; background:var(--main); color:#fff; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">立即导入</button>
+        <button onclick="toggleModal(false)" style="width:100%; margin-top:10px; border:none; background:none; color:#999; cursor:pointer;">关闭窗口</button>
     </div>
 </div>
 
 <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 <script>
-    let player = null, apiList = JSON.parse(localStorage.getItem('joe_v21_apis') || '[]');
+    let player = null;
+    let apiList = JSON.parse(localStorage.getItem('joe_v21_apis') || '[]');
     let history = JSON.parse(localStorage.getItem('joe_v21_his') || '{}');
-    let currentVod = null, currentApi = '', isReverse = false;
+    let settings = JSON.parse(localStorage.getItem('joe_v21_set') || '{"start":0,"end":0,"auto":true}');
+    let currentVod = null, currentApi = '', currentT = '';
 
-    // --- 极速解析引擎 ---
+    // --- 极速解析引擎 (V21.11 同款) ---
     async function smartFetch(url) {
         try {
-            const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+            const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
             const text = await res.text();
             if (text.includes('<?xml')) {
                 const xml = new DOMParser().parseFromString(text, "text/xml");
@@ -120,22 +143,19 @@
         } catch(e) { return null; }
     }
 
-    // --- 搜索功能 (修复版) ---
+    // --- 并发搜索 (V21.11 同款) ---
     async function doGlobalSearch() {
         const kw = document.getElementById('kw').value.trim();
         if(!kw) return;
         const view = document.getElementById('main-view');
-        view.innerHTML = `<h3>🔍 正在跨站搜索: ${kw}</h3><div class="grid" id="search-res"></div>`;
+        view.innerHTML = `<div class="row-title">正在横跨 ${apiList.length} 个站点检索: ${kw}</div><div class="grid" id="search-res"></div>`;
         
-        // 关键修复：Promise.allSettled 确保一个源挂了不影响整体
         const tasks = apiList.map(api => smartFetch(`${api.url}${api.url.includes('?')?'&':'?'}ac=detail&wd=${encodeURIComponent(kw)}`));
         const results = await Promise.allSettled(tasks);
         
         const container = document.getElementById('search-res');
-        let hasRes = false;
         results.forEach((res, idx) => {
             if(res.status === 'fulfilled' && res.value) {
-                hasRes = true;
                 container.innerHTML += res.value.list.map(v => `
                     <div class="card" onclick="reqDetail('${apiList[idx].url}','${v.vod_id}')">
                         <img src="${v.vod_pic}">
@@ -143,10 +163,9 @@
                     </div>`).join('');
             }
         });
-        if(!hasRes) container.innerHTML = "未搜到任何资源。";
     }
 
-    // --- 详情与换源 ---
+    // --- 详情与记录系统 ---
     async function reqDetail(apiUrl, id) {
         currentApi = apiUrl;
         const data = await smartFetch(`${apiUrl}${apiUrl.includes('?')?'&':'?'}ac=detail&ids=${id}`);
@@ -160,10 +179,15 @@
         document.getElementById('v-title').innerText = currentVod.vod_name;
         document.getElementById('v-info').innerText = currentVod.vod_content?.replace(/<[^>]+>/g, '');
         
+        // 加载播放设置
+        document.getElementById('set-start').value = settings.start;
+        document.getElementById('set-end').value = settings.end;
+        document.getElementById('set-auto').checked = settings.auto;
+
         renderApiTabs();
         renderRange();
         
-        // 自动续播
+        // 自动续播逻辑
         const his = history[currentVod.vod_name];
         if(his) {
             const target = currentVod.eps.find(e => e.n === his.ep);
@@ -180,7 +204,7 @@
     async function switchSource(url) {
         const data = await smartFetch(`${url}${url.includes('?')?'&':'?'}ac=detail&wd=${encodeURIComponent(currentVod.vod_name)}`);
         if(data && data.list.length) reqDetail(url, data.list[0].vod_id);
-        else alert("该线路搜不到此片");
+        else alert("该线路暂无此资源");
     }
 
     function renderRange() {
@@ -206,57 +230,76 @@
         `).join('');
     }
 
-    // --- 播放器优化 (核心卡顿修复) ---
+    // --- 智能播放与性能优化 ---
     function play(url, epName, el, startTime = 0) {
         if(el) { document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active')); el.classList.add('active'); }
         if(player) player.dispose();
         
-        document.getElementById('v-wrapper').innerHTML = `<video id="v-core" class="video-js vjs-16-9" controls></video>`;
+        document.getElementById('v-wrapper').innerHTML = `<video id="v-core" class="video-js vjs-16-9 vjs-big-play-centered" controls></video>`;
         
-        // 注入 HLS 优化参数
         player = videojs('v-core', {
-            html5: {
-                hls: {
-                    overrideNative: true,
-                    enableLowInitialPlaylist: true,
-                    smoothQualityChange: true,
-                    bufferLength: 30 // 预留30秒缓冲区，防止卡顿
-                }
-            }
+            html5: { hls: { overrideNative: true, bufferLength: 30 } }
         });
 
         player.src({ src: url, type: 'application/x-mpegURL' });
         player.ready(() => {
             player.play();
+            // 智能跳过片头
             if(startTime > 0) player.currentTime(startTime);
+            else if(settings.start > 0) player.currentTime(settings.start);
             
             // 实时详情展示
-            const timer = setInterval(() => {
-                if(!player || player.isDisposed()) return clearInterval(timer);
+            const infoTimer = setInterval(() => {
+                if(!player || player.isDisposed()) return clearInterval(infoTimer);
                 const vid = document.querySelector('video');
                 if(vid) {
-                    const speed = (player.bufferedEnd() - player.currentTime()).toFixed(1);
-                    document.getElementById('v-details').innerText = `解析: ${vid.videoWidth}x${vid.videoHeight} | 缓存: ${speed}s | 进度: ${Math.floor(player.currentTime())}s`;
+                    const buf = (player.bufferedEnd() - player.currentTime()).toFixed(1);
+                    document.getElementById('v-details').innerText = `解析: ${vid.videoWidth}x${vid.videoHeight} | 缓存: ${buf}s | 进度: ${Math.floor(player.currentTime())}s`;
                 }
             }, 1000);
         });
 
         player.on('timeupdate', () => {
-            history[currentVod.vod_name] = { ep: epName, time: player.currentTime() };
+            const now = player.currentTime();
+            const dur = player.duration();
+            // 保存进度
+            history[currentVod.vod_name] = { ep: epName, time: now, date: Date.now() };
             localStorage.setItem('joe_v21_his', JSON.stringify(history));
+
+            // 智能跳过片尾与自动连播
+            if(settings.auto && settings.end > 0 && dur > 0 && (dur - now < settings.end)) {
+                playNext();
+            }
         });
+        player.on('ended', () => { if(settings.auto) playNext(); });
     }
 
-    // --- 基础逻辑 ---
+    function playNext() {
+        const next = document.querySelector('.ep-btn.active')?.nextElementSibling;
+        if(next) next.click();
+    }
+
+    function saveSettings() {
+        settings = {
+            start: parseInt(document.getElementById('set-start').value) || 0,
+            end: parseInt(document.getElementById('set-end').value) || 0,
+            auto: document.getElementById('set-auto').checked
+        };
+        localStorage.setItem('joe_v21_set', JSON.stringify(settings));
+    }
+
+    // --- 基础导航逻辑 ---
     async function route(id, el) {
         if(el) { document.querySelectorAll('.nav div').forEach(d => d.classList.remove('active')); el.classList.add('active'); }
+        currentT = id === 'home' ? '' : id;
         const view = document.getElementById('main-view');
-        view.innerHTML = "正在加载...";
-        if(!apiList.length) return;
-        const data = await smartFetch(`${apiList[0].url}${apiList[0].url.includes('?')?'&':'?'}ac=detail&t=${id==='home'?'':id}`);
+        view.innerHTML = `<div style="text-align:center; padding:50px;">正在加载最新资源...</div>`;
+        if(!apiList.length) return view.innerHTML = "请添加接口。";
+        
+        const data = await smartFetch(`${apiList[0].url}${apiList[0].url.includes('?')?'&':'?'}ac=detail&t=${currentT}`);
         if(data) {
             view.innerHTML = `<div class="grid">${data.list.map(v => {
-                const h = history[v.vod_name] ? `<div class="his-tag">看至:${history[v.vod_name].ep}</div>` : '';
+                const h = history[v.vod_name] ? `<div class="his-tag">📍 ${history[v.vod_name].ep}</div>` : '';
                 return `<div class="card" onclick="reqDetail('${apiList[0].url}','${v.vod_id}')">
                     <img src="${v.vod_pic}">${h}
                     <div class="info">${v.vod_name}</div>
@@ -266,14 +309,20 @@
     }
 
     function toggleModal(s) { document.getElementById('mgr-modal').style.display = s?'flex':'none'; if(s) renderMgr(); }
-    function renderMgr() { document.getElementById('api-mgr-list').innerHTML = apiList.map((a, i) => `<div style="padding:8px; display:flex; justify-content:space-between; border-bottom:1px solid #eee;"><span>${a.name}</span><span style="color:red; cursor:pointer;" onclick="apiList.splice(${i},1);renderMgr();localStorage.setItem('joe_v21_apis',JSON.stringify(apiList))">删除</span></div>`).join(''); }
+    function renderMgr() { document.getElementById('api-mgr-list').innerHTML = apiList.map((a, i) => `<div style="padding:10px; display:flex; justify-content:space-between; border-bottom:1px solid #eee;"><span>${a.name}</span><span style="color:red; cursor:pointer;" onclick="apiList.splice(${i},1);renderMgr();localStorage.setItem('joe_v21_apis',JSON.stringify(apiList))">删除</span></div>`).join(''); }
     async function batchAdd() {
         const lines = document.getElementById('api-input').value.split('\n');
-        for(let l of lines) { if(l.trim()) { const d = await smartFetch(l.trim()+(l.includes('?')?'&':'?')+'ac=list'); apiList.push({name: d?d.name:'线路', url: l.trim()}); } }
+        for(let l of lines) { 
+            let url = l.trim();
+            if(url) { 
+                const d = await smartFetch(url+(url.includes('?')?'&':'?')+'ac=list'); 
+                apiList.push({name: d?d.name:'新线路', url: url}); 
+            } 
+        }
         localStorage.setItem('joe_v21_apis', JSON.stringify(apiList));
         location.reload();
     }
-    function closePlayer() { if(player) player.pause(); document.getElementById('player-page').style.display='none'; route('home'); }
+    function closePlayer() { if(player) player.pause(); document.getElementById('player-page').style.display='none'; route(currentT || 'home'); }
     window.onload = () => route('home');
 </script>
 </body>
