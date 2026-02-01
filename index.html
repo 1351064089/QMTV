@@ -4,200 +4,268 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>JOE OS | 播放中心</title>
+    <title>JOE OS | 旗舰系统</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
-        :root {
-            --primary: #00fb9a;
-            --bg: #f8fafc;
-            --panel: #ffffff;
-            --text: #1e293b;
-        }
-
+        :root { --main: #a29bfe; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; }
         body, html { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: "PingFang SC", sans-serif; }
-
-        /* --- 导航栏 --- */
-        header {
-            background: rgba(255,255,255,0.8); backdrop-filter: blur(10px);
-            height: 60px; display: flex; align-items: center; padding: 0 40px;
-            position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #e2e8f0;
-        }
-        .logo { font-size: 22px; font-weight: 900; color: #a29bfe; margin-right: 30px; }
-
-        /* --- 详情页主容器 --- */
-        .player-page { max-width: 1400px; margin: 30px auto; padding: 0 20px; display: grid; grid-template-columns: 1fr 350px; gap: 25px; }
-
-        /* 左侧：播放器与介绍 */
-        .main-col { display: flex; flex-direction: column; gap: 20px; }
-        .video-wrapper { background: #000; border-radius: 12px; overflow: hidden; aspect-ratio: 16/9; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         
-        .video-info { background: var(--panel); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .v-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
-        .v-tags { display: flex; gap: 8px; margin-bottom: 15px; }
-        .tag { font-size: 12px; padding: 4px 10px; background: #f1f5f9; border-radius: 4px; color: #64748b; }
-        .v-desc { font-size: 14px; color: #64748b; line-height: 1.8; }
-
-        /* 右侧：选集与换源 (复刻截图逻辑) */
-        .side-col { background: var(--panel); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: fit-content; max-height: 800px; }
-        
-        /* 侧边栏页签切换 */
-        .tabs { display: flex; border-bottom: 1px solid #f1f5f9; }
-        .tab-item { flex: 1; text-align: center; padding: 15px; cursor: pointer; font-size: 14px; font-weight: bold; color: #94a3b8; transition: 0.3s; }
-        .tab-item.active { color: var(--text); border-bottom: 2px solid #a29bfe; background: #f8fafc; }
-
-        .tab-content { padding: 15px; overflow-y: auto; flex: 1; }
-
-        /* 选集格子 */
-        .ep-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .ep-item { background: #f1f5f9; padding: 10px 0; text-align: center; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
-        .ep-item:hover { background: #e2e8f0; }
-        .ep-item.active { background: #a29bfe; color: white; border-color: #a29bfe; }
-
-        /* 换源列表 (复刻截图右侧) */
-        .source-item { 
-            display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; 
-            margin-bottom: 10px; background: #f8fafc; cursor: pointer; border: 1px solid transparent;
+        /* 1:1 还原截图顶栏 */
+        .joe-header {
+            position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
+            width: 95%; max-width: 1200px; height: 55px;
+            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px);
+            border-radius: 30px; display: flex; align-items: center; padding: 0 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05); z-index: 1000;
         }
-        .source-item:hover { background: #f1f5f9; }
-        .source-item.active { border-color: #a29bfe; background: #f3f0ff; }
-        .source-icon { width: 40px; height: 40px; border-radius: 6px; background: #ddd; object-fit: cover; }
-        .source-info { flex: 1; }
-        .source-name { font-size: 13px; font-weight: bold; }
-        .source-status { font-size: 11px; color: #a29bfe; margin-top: 3px; }
-        .status-fail { color: #ff6b6b; }
+        .logo { font-size: 20px; font-weight: 900; color: var(--main); margin-right: 20px; }
+        .nav-links { display: flex; gap: 8px; flex: 1; }
+        .nav-item {
+            padding: 5px 15px; border-radius: 20px; font-size: 13px; cursor: pointer;
+            text-decoration: none; color: #64748b; font-weight: 600;
+        }
+        .nav-item.active { background: #f1f5f9; color: var(--text); }
+        /* 截图中的马卡龙配色 */
+        .cat-movie { background: #fff1f1; color: #ff6b6b; }
+        .cat-tv { background: #f3f0ff; color: #a29bfe; }
+        .cat-anime { background: #e6fffa; color: #20c997; }
+        .cat-variety { background: #fffbe6; color: #fab005; }
+        .cat-live { background: #fff0f6; color: #f06595; }
+
+        /* 布局控制 */
+        .container { max-width: 1200px; margin: 100px auto 50px; padding: 0 20px; }
+        .brand-zone { text-align: center; margin-bottom: 50px; }
+        .brand-zone h1 { font-size: 60px; margin: 0; color: var(--main); font-weight: 900; }
+        
+        .section-row { margin-bottom: 35px; }
+        .section-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; display: flex; justify-content: space-between; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; }
+        .card { background: var(--card); border-radius: 12px; overflow: hidden; cursor: pointer; transition: 0.3s; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
+        .card .badge { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+        .card .info { padding: 10px; }
+        .card .title { font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* --- 详情页 (截图 4, 5) --- */
+        #player-page { 
+            position: fixed; inset: 0; background: var(--bg); z-index: 2000; 
+            display: none; overflow-y: auto; padding-top: 80px;
+        }
+        .player-content { max-width: 1300px; margin: 0 auto; display: grid; grid-template-columns: 1fr 320px; gap: 25px; padding: 0 20px; }
+        .v-box { background: #000; border-radius: 12px; overflow: hidden; aspect-ratio: 16/9; }
+        .side-tabs { background: #fff; border-radius: 12px; height: 600px; display: flex; flex-direction: column; }
+        .tab-nav { display: flex; border-bottom: 1px solid #f1f5f9; }
+        .tab-nav div { flex: 1; padding: 15px; text-align: center; cursor: pointer; font-size: 14px; font-weight: bold; color: #94a3b8; }
+        .tab-nav div.active { color: var(--main); border-bottom: 2px solid var(--main); }
+        .tab-body { flex: 1; overflow-y: auto; padding: 15px; }
+        
+        .ep-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .ep-item { background: #f1f5f9; padding: 8px 0; text-align: center; border-radius: 5px; font-size: 12px; cursor: pointer; }
+        .ep-item.active { background: var(--main); color: #fff; }
+
+        .source-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: #f8fafc; margin-bottom: 8px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
+        .source-item.active { border-color: var(--main); background: #f3f0ff; }
+
+        /* 管理面板 (截图 3) */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 5000; }
+        .modal-body { background: #fff; width: 600px; border-radius: 20px; padding: 25px; }
+        .admin-row { padding: 15px; background: #f8fafc; margin-bottom: 10px; border-radius: 10px; display: flex; justify-content: space-between; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<header>
+<header class="joe-header">
     <div class="logo">JOE OS</div>
-    <div style="font-size: 14px; color: #64748b;">详情播放页</div>
+    <div class="nav-links">
+        <div class="nav-item active" onclick="location.reload()">首页</div>
+        <div class="nav-item">搜索</div>
+        <div class="nav-item cat-movie" onclick="loadDB('Movie')">电影</div>
+        <div class="nav-item cat-tv" onclick="loadDB('TV')">剧集</div>
+        <div class="nav-item cat-anime" onclick="loadDB('Anime')">动漫</div>
+        <div class="nav-item cat-variety" onclick="loadDB('Variety')">综艺</div>
+        <div class="nav-item cat-live" onclick="showAdmin()">管理面板</div>
+    </div>
 </header>
 
-<div class="player-page">
-    <div class="main-col">
-        <div class="video-wrapper">
-            <video id="v-core" class="video-js vjs-big-play-centered vjs-16-9" controls preload="auto" width="100%"></video>
-        </div>
-        
-        <div class="video-info">
-            <div class="v-title" id="v-title">加载中... <span style="font-size:14px; color:#a29bfe; font-weight:normal;">❤️ 收藏</span></div>
-            <div class="v-tags" id="v-tags">
-                <span class="tag">2024</span>
-                <span class="tag">4K超清</span>
-                <span class="tag">国产动漫</span>
-            </div>
-            <div class="v-desc" id="v-desc">正在拉取影片简介...</div>
-        </div>
+<div class="container">
+    <div class="brand-zone">
+        <h1>JOE</h1>
+        <p style="color:#94a3b8; letter-spacing:3px;">发现 · 收藏 · 继续观看</p>
     </div>
 
-    <div class="side-col">
-        <div class="tabs">
-            <div class="tab-item active" onclick="switchTab('ep')">选集</div>
-            <div class="tab-item" onclick="switchTab('source')">换源</div>
-        </div>
-        
-        <div id="ep-panel" class="tab-content">
-            <div class="ep-grid" id="ep-list">
-                </div>
-        </div>
+    <div class="section-row" id="his-row" style="display:none;">
+        <div class="section-title"><span>继续观看</span><span style="font-size:12px; color:#94a3b8; cursor:pointer;" onclick="clearHis()">清空</span></div>
+        <div class="grid" id="his-grid"></div>
+    </div>
 
-        <div id="source-panel" class="tab-content" style="display:none;">
-            <div id="source-list">
-                </div>
+    <div class="section-row">
+        <div class="section-title">今日热门</div>
+        <div class="grid" id="main-grid"></div>
+    </div>
+</div>
+
+<div id="player-page">
+    <div style="padding: 0 40px 20px; font-weight: bold; cursor: pointer;" onclick="closePlayer()"> ← 返回首页</div>
+    <div class="player-content">
+        <div class="main-player">
+            <div class="v-box">
+                <video id="v-core" class="video-js vjs-big-play-centered vjs-16-9" controls style="width:100%; height:100%;"></video>
+            </div>
+            <div style="margin-top:20px; background:#fff; padding:20px; border-radius:12px;">
+                <h2 id="v-title" style="margin:0;"></h2>
+                <div id="v-tags" style="margin:10px 0; display:flex; gap:10px;"></div>
+                <p id="v-desc" style="font-size:14px; color:#64748b; line-height:1.6;"></p>
+            </div>
         </div>
+        <div class="side-tabs">
+            <div class="tab-nav">
+                <div id="t-ep" class="active" onclick="switchTab('ep')">选集</div>
+                <div id="t-src" onclick="switchTab('src')">换源</div>
+            </div>
+            <div class="tab-body" id="ep-panel">
+                <div class="ep-grid" id="ep-list"></div>
+            </div>
+            <div class="tab-body" id="src-panel" style="display:none;">
+                <div id="src-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="admin-modal">
+    <div class="modal-body">
+        <h3>管理员设置 <span style="background:red; color:#fff; font-size:10px; padding:2px 5px; border-radius:4px;">配置中心</span></h3>
+        <div class="admin-row"><span>配置文件</span><span>></span></div>
+        <div class="admin-row" onclick="addApi()"><span>视频源配置 (点击添加)</span><span>+</span></div>
+        <div class="admin-row"><span>直播源配置</span><span>></span></div>
+        <div class="admin-row"><span>数据迁移</span><span>></span></div>
+        <button onclick="hideAdmin()" style="width:100%; padding:10px; margin-top:10px; border:none; border-radius:8px; cursor:pointer;">关闭</button>
     </div>
 </div>
 
 <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 <script>
+    let apis = JSON.parse(localStorage.getItem('joe_apis') || '[]');
+    let history = JSON.parse(localStorage.getItem('joe_his') || '[]');
     const player = videojs('v-core');
-    let currentData = null; // 存储当前影片所有源数据
+    let currentVideo = null;
 
-    // 1. 模拟数据加载 (正式版应由首页跳转并带参数)
     window.onload = () => {
-        const mockVideo = {
-            vod_name: "仙逆",
-            vod_content: "乡村平凡少年王林，为了心中不屈的信念踏入仙门修行，克服天赋不足的困境，逆流而上，积极面对苦难与挑战，不断突破自我，最终将命运始终牢牢地把握在自己手中！",
-            vod_tag: "剧情,动画,古装",
-            sources: [
-                { name: "量子4K", status: "推荐", icon: "https://api.dicebear.com/7.x/identicon/svg?seed=lz", urls: "01$url1#02$url2#03$url3" },
-                { name: "非凡影视", status: "检测失败", icon: "https://api.dicebear.com/7.x/identicon/svg?seed=ff", urls: "01$url4#02$url5" },
-                { name: "暴风高清", status: "在线", icon: "https://api.dicebear.com/7.x/identicon/svg?seed=bf", urls: "01$url6#02$url7" }
-            ]
-        };
-        initPage(mockVideo);
+        renderHis();
+        loadDB('Movie');
     };
 
-    function initPage(data) {
-        currentData = data;
-        document.getElementById('v-title').innerHTML = `${data.vod_name} <span style="font-size:14px; color:#a29bfe; font-weight:normal;">❤️ 收藏</span>`;
-        document.getElementById('v-desc').innerText = data.vod_content;
-        
-        // 渲染标签
-        const tagBox = document.getElementById('v-tags');
-        tagBox.innerHTML = data.vod_tag.split(',').map(t => `<span class="tag">${t}</span>`).join('');
-
-        renderSources();
-        switchSource(0); // 默认选择第一个源
+    // 1. 豆瓣导入功能 (JOE OS 核心逻辑)
+    async function loadDB(type) {
+        const grid = document.getElementById('main-grid');
+        grid.innerHTML = '正在加载...';
+        try {
+            const res = await fetch(`https://api.wmdb.tv/api/v1/top?type=${type}&skip=0&limit=12`);
+            const data = await res.json();
+            grid.innerHTML = '';
+            data.forEach(m => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="badge">${m.doubanRating || 'TOP'}</div>
+                    <img src="${m.data[0].poster}" referrerpolicy="no-referrer">
+                    <div class="info"><div class="title">${m.data[0].name}</div></div>
+                `;
+                card.onclick = () => autoMatch(m.data[0].name);
+                grid.appendChild(card);
+            });
+        } catch(e) { grid.innerHTML = '请在管理面板检查接口。'; }
     }
 
-    // 2. 渲染换源列表
-    function renderSources() {
-        const box = document.getElementById('source-list');
-        box.innerHTML = currentData.sources.map((s, idx) => `
-            <div class="source-item ${idx===0?'active':''}" onclick="switchSource(${idx})">
-                <img src="${s.icon}" class="source-icon">
-                <div class="source-info">
-                    <div class="source-name">${s.name}</div>
-                    <div class="source-status ${s.status==='检测失败'?'status-fail':''}">${s.status}</div>
-                </div>
+    // 2. 聚合搜索逻辑
+    async function autoMatch(name) {
+        if(apis.length === 0) { alert('请先去管理面板添加源'); showAdmin(); return; }
+        for(let api of apis) {
+            try {
+                const res = await fetch(`${api.url}?ac=detail&wd=${encodeURIComponent(name)}`).then(r => r.json());
+                if(res.list && res.list.length > 0) {
+                    openPlayer(res.list[0], res.list); // 传入该视频及同名列表
+                    return;
+                }
+            } catch(e) {}
+        }
+        alert('未找到资源');
+    }
+
+    // 3. 播放详情页功能 (1:1 还原截图 4, 5)
+    function openPlayer(video, sourceList) {
+        currentVideo = video;
+        document.getElementById('player-page').style.display = 'block';
+        document.getElementById('v-title').innerText = video.vod_name;
+        document.getElementById('v-desc').innerText = video.vod_content.replace(/<[^>]+>/g, '');
+        
+        // 渲染换源列表
+        const srcList = document.getElementById('src-list');
+        srcList.innerHTML = sourceList.map((s, i) => `
+            <div class="source-item ${i===0?'active':''}" onclick="changeSrc(${i})">
+                <div style="width:30px;height:30px;background:#ddd;border-radius:4px;"></div>
+                <div><div style="font-size:13px;font-weight:bold;">${s.vod_name}</div><div style="font-size:11px;color:var(--main);">资源在线</div></div>
+            </div>
+        `).join('');
+
+        loadEps(video);
+        saveHis(video);
+    }
+
+    function loadEps(video) {
+        const epList = document.getElementById('ep-list');
+        const urlPart = video.vod_play_url.split('$$$')[0]; // 取第一条线路
+        const eps = urlPart.split('#');
+        epList.innerHTML = eps.map(e => {
+            const [name, url] = e.split('$');
+            return `<div class="ep-item" onclick="play('${url}', this)">${name}</div>`;
+        }).join('');
+        if(epList.firstChild) epList.firstChild.click();
+    }
+
+    function play(url, el) {
+        document.querySelectorAll('.ep-item').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+        player.src({ src: url, type: 'application/x-mpegURL' });
+        player.play();
+    }
+
+    function saveHis(v) {
+        history = history.filter(h => h.vod_id !== v.vod_id);
+        history.unshift(v);
+        localStorage.setItem('joe_his', JSON.stringify(history.slice(0, 10)));
+        renderHis();
+    }
+
+    function renderHis() {
+        const hisRow = document.getElementById('his-row');
+        const hisGrid = document.getElementById('his-grid');
+        if(history.length === 0) { hisRow.style.display = 'none'; return; }
+        hisRow.style.display = 'block';
+        hisGrid.innerHTML = history.map(h => `
+            <div class="card" onclick='autoMatch("${h.vod_name}")'>
+                <div class="badge">已看</div>
+                <img src="${h.vod_pic}">
+                <div class="info"><div class="title">${h.vod_name}</div></div>
             </div>
         `).join('');
     }
 
-    // 3. 切换播放源
-    function switchSource(idx) {
-        const source = currentData.sources[idx];
-        const items = document.querySelectorAll('.source-item');
-        items.forEach(el => el.classList.remove('active'));
-        items[idx].classList.add('active');
-
-        // 渲染该源下的选集
-        const epBox = document.getElementById('ep-list');
-        const eps = source.urls.split('#');
-        epBox.innerHTML = eps.map((ep, eIdx) => {
-            const [name, url] = ep.split('$');
-            return `<div class="ep-item" onclick="playEp('${url}', this)">${name}</div>`;
-        }).join('');
-
-        // 默认播放第一集
-        if(epBox.firstChild) epBox.firstChild.click();
+    // 基础交互
+    function switchTab(t) {
+        document.getElementById('t-ep').classList.toggle('active', t==='ep');
+        document.getElementById('t-src').classList.toggle('active', t==='src');
+        document.getElementById('ep-panel').style.display = t==='ep' ? 'block' : 'none';
+        document.getElementById('src-panel').style.display = t==='src' ? 'block' : 'none';
     }
-
-    function playEp(url, el) {
-        document.querySelectorAll('.ep-item').forEach(i => i.classList.remove('active'));
-        el.classList.add('active');
-        
-        // 这里替换为真实的 M3U8 地址
-        player.src({ src: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', type: 'application/x-mpegURL' });
-        player.play();
-    }
-
-    // 4. 页签切换逻辑
-    function switchTab(type) {
-        const tabs = document.querySelectorAll('.tab-item');
-        tabs.forEach(t => t.classList.remove('active'));
-        
-        if(type === 'ep') {
-            tabs[0].classList.add('active');
-            document.getElementById('ep-panel').style.display = 'block';
-            document.getElementById('source-panel').style.display = 'none';
-        } else {
-            tabs[1].classList.add('active');
-            document.getElementById('ep-panel').style.display = 'none';
-            document.getElementById('source-panel').style.display = 'block';
-        }
+    function showAdmin() { document.getElementById('admin-modal').style.display = 'flex'; }
+    function hideAdmin() { document.getElementById('admin-modal').style.display = 'none'; }
+    function closePlayer() { player.pause(); document.getElementById('player-page').style.display = 'none'; }
+    function addApi() {
+        const u = prompt('输入采集接口:');
+        if(u) { apis.push({url: u}); localStorage.setItem('joe_apis', JSON.stringify(apis)); }
     }
 </script>
 </body>
