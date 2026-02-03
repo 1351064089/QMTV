@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>JOE TV V22.01 | 细节补完版</title>
+    <title>JOE TV V22.01 | 最终稳定版</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
         :root { --main: #6c5ce7; --bg: #f4f7f6; --text: #2d3436; }
@@ -34,8 +34,8 @@
 
         #player-page { position: fixed; inset: 0; background: #f4f4f4; z-index: 2000; display: none; overflow-y: auto; }
         .p-layout { display: grid; grid-template-columns: 1fr 380px; gap: 20px; padding: 20px; max-width: 1600px; margin: 0 auto; }
-        .v-box { background: #000; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; position: relative; }
-        #v-details { position: absolute; top: 15px; left: 15px; color: #fff; background: rgba(0,0,0,0.7); padding: 6px 12px; font-size: 12px; z-index: 10; border-radius: 6px; pointer-events: none; border-left: 3px solid var(--main); }
+        .v-box { background: #000; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; position: relative; z-index: 2001; }
+        #v-details { position: absolute; top: 15px; left: 15px; color: #fff; background: rgba(0,0,0,0.7); padding: 8px 15px; font-size: 12px; z-index: 2100; border-radius: 6px; pointer-events: none; border-left: 4px solid var(--main); }
         
         .side-panel { background: #fff; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #eee; }
         .panel-title { padding: 12px; font-weight: bold; background: #f8f9fa; border-bottom: 1px solid #eee; }
@@ -44,8 +44,8 @@
         .tab-item.active { background: var(--main); color: #fff; border-color: var(--main); }
         
         .ep-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 15px; max-height: 400px; overflow-y: auto; }
-        .ep-btn { background: #f1f5f9; padding: 10px 0; text-align: center; font-size: 12px; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
-        .ep-btn.active { background: var(--main); color: #fff; border-color: var(--main); }
+        .ep-btn { background: #f1f5f9; padding: 10px 0; text-align: center; font-size: 12px; border-radius: 6px; cursor: pointer; }
+        .ep-btn.active { background: var(--main); color: #fff; }
 
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 3000; backdrop-filter: blur(4px); }
         .modal-body { background: #fff; width: 450px; padding: 25px; border-radius: 15px; }
@@ -64,16 +64,16 @@
         <div onclick="route('2', this)">剧集</div>
         <div onclick="route('3', this)">综艺</div>
         <div onclick="route('4', this)">动漫</div>
-        <div style="background:#fff3e0!important;color:#e65100!important" onclick="toggleModal(true)">⚙️ 配置/同步</div>
+        <div style="background:#fff3e0!important;color:#e65100!important" onclick="toggleModal(true)">⚙️ 配置/测速</div>
     </div>
     <div class="search-box">
-        <input type="text" id="kw" placeholder="搜索或粘贴配置码..." onkeydown="if(event.keyCode==13) handleQuickIn()">
+        <input type="text" id="kw" placeholder="搜索资源..." onkeydown="if(event.keyCode==13) handleQuickIn()">
     </div>
 </header>
 
 <div class="container">
     <div id="history-section" style="display:none;">
-        <div class="section-h">🎬 最近观看 <span onclick="clearHistory()" style="font-size:12px; color:#999; cursor:pointer;">[清空记录]</span></div>
+        <div class="section-h">🎬 观看记录 <span onclick="clearHistory()" style="font-size:12px; color:#999; cursor:pointer;">[清空]</span></div>
         <div class="history-row" id="history-row"></div>
     </div>
     <div id="main-view"></div>
@@ -83,22 +83,22 @@
     <div style="padding:15px 20px; color:var(--main); cursor:pointer; font-weight:bold;" onclick="closePlayer()">🔙 返回列表</div>
     <div class="p-layout">
         <div class="p-main">
-            <div class="v-box">
-                <div id="v-details">正在连接资源...</div>
+            <div class="v-box" id="full-v-box">
+                <div id="v-details">正在加载资源详情...</div>
                 <div id="v-wrapper"></div>
             </div>
             <div style="background:#fff; padding:20px; margin-top:20px; border-radius:12px; border:1px solid #eee;">
                 <h3 id="v-title" style="margin:0 0 10px 0;"></h3>
                 <div style="font-size:13px; color:#666; display:flex; gap:15px; align-items:center;">
-                    <span>片头跳过 <input type="number" id="set-start" style="width:50px" onchange="saveSettings()"> 秒</span>
-                    <span>片尾跳过 <input type="number" id="set-end" style="width:50px" onchange="saveSettings()"> 秒</span>
+                    <span>跳过片头 <input type="number" id="set-start" style="width:50px" onchange="saveSettings()"> 秒</span>
+                    <span>跳过片尾 <input type="number" id="set-end" style="width:50px" onchange="saveSettings()"> 秒</span>
                     <label><input type="checkbox" id="set-auto" checked onchange="saveSettings()"> 自动连播</label>
                 </div>
                 <p id="v-info" style="font-size:13px; color:#666; margin-top:15px; border-top:1px solid #eee; padding-top:15px; line-height:1.6;"></p>
             </div>
         </div>
         <div class="side-panel">
-            <div class="panel-title">📡 线路切换</div>
+            <div class="panel-title">📡 线路切换 (正在显示源匹配)</div>
             <div class="tab-bar" id="api-tabs"></div>
             <div class="panel-title">🔢 选集播放</div>
             <div class="tab-bar" id="range-tabs"></div>
@@ -109,11 +109,11 @@
 
 <div id="mgr-modal" class="modal">
     <div class="modal-body">
-        <h3>管理与测速 V22.01</h3>
+        <h3>配置与测速 V22.01</h3>
         <div id="api-mgr-list" style="max-height:120px; overflow-y:auto; border:1px solid #eee; margin-bottom:10px; font-size:12px;"></div>
-        <textarea id="api-input" placeholder="输入线路或配置码..."></textarea>
+        <textarea id="api-input" placeholder="粘贴线路URL或配置码..."></textarea>
         <div class="mgr-btns">
-            <button class="mgr-btn" style="background:var(--main); color:#fff" onclick="batchAdd()">测速排序</button>
+            <button class="mgr-btn" style="background:var(--main); color:#fff" onclick="batchAdd()">开始测速并排序</button>
             <button class="mgr-btn" style="background:#00b894; color:#fff" onclick="importConfig()">导入</button>
             <button class="mgr-btn" style="background:#34495e; color:#fff" onclick="exportConfig()">导出</button>
             <button class="mgr-btn" style="background:#999; color:#fff" onclick="toggleModal(false)">关闭</button>
@@ -159,14 +159,14 @@
         const kw = document.getElementById('kw').value.trim();
         if(!kw) return;
         const view = document.getElementById('main-view');
-        view.innerHTML = `<div class="section-h">🔍 搜索：${kw}</div><div class="grid" id="search-res"></div>`;
+        view.innerHTML = `<div class="section-h">🔍 搜索结果：${kw}</div><div class="grid" id="search-res"></div>`;
         apiList.forEach(async (api) => {
             const d = await smartFetch(`${api.url}${api.url.includes('?')?'&':'?'}ac=detail&wd=${encodeURIComponent(kw)}`);
             if(d && d.list) {
                 document.getElementById('search-res').innerHTML += d.list.map(v => `
                     <div class="card" onclick="reqDetail('${api.url}','${v.vod_id}')">
                         <div class="source-tag">${api.name}</div>
-                        <img src="${v.vod_pic}" onerror="this.src='https://via.placeholder.com/200x300?text=JOE+TV'">
+                        <img src="${v.vod_pic}" onerror="this.src='https://via.placeholder.com/200x300?text=No+Pic'">
                         <div class="info">${v.vod_name}</div>
                     </div>`).join('');
             }
@@ -182,7 +182,7 @@
             hRow.innerHTML = hList.map(h => `
                 <div class="history-item" onclick="reqDetail('${h.apiUrl}','${h.id}')">
                     <img src="${h.pic}"><div class="h-title">${h.name}</div>
-                    <div style="font-size:10px; color:var(--main); padding:0 8px 5px;">📍 ${h.ep}</div>
+                    <div style="font-size:10px; color:var(--main); padding:0 8px 5px;">📍 上次：${h.ep}</div>
                 </div>`).join('');
         } else hSec.style.display = 'none';
     }
@@ -197,7 +197,7 @@
 
         document.getElementById('player-page').style.display = 'block';
         document.getElementById('v-title').innerText = currentVod.vod_name;
-        document.getElementById('v-info').innerText = currentVod.vod_content?.replace(/<[^>]+>/g, '') || '暂无简介';
+        document.getElementById('v-info').innerText = currentVod.vod_content?.replace(/<[^>]+>/g, '') || '暂无内容简介';
         document.getElementById('set-start').value = settings.start;
         document.getElementById('set-end').value = settings.end;
         document.getElementById('set-auto').checked = settings.auto;
@@ -219,8 +219,8 @@
         player.src({ src: url, type: 'application/x-mpegURL' });
         
         player.on('error', () => { 
-            document.getElementById('v-details').innerText = "尝试重连中...";
-            setTimeout(() => { if(player && !player.isDisposed()){player.load(); player.play();} }, 2000);
+            document.getElementById('v-details').innerText = "加载失败，重连中...";
+            setTimeout(() => { if(player && !player.isDisposed()){player.load(); player.play();} }, 2500);
         });
 
         player.ready(() => {
@@ -230,21 +230,19 @@
             player.on('timeupdate', () => {
                 const now = player.currentTime();
                 const duration = player.duration();
-                // 历史记录
                 history[currentVod.vod_name] = { name: currentVod.vod_name, id: currentVod.id, pic: currentVod.vod_pic, apiUrl: currentApi, ep: epName, time: now, date: Date.now() };
                 localStorage.setItem('joe_v21_his', JSON.stringify(history));
                 
-                // 详情显示
+                // 详情显示（含清晰度、集数）
                 if(now % 1 < 0.5) {
-                    document.getElementById('v-details').innerText = `正在播放：${currentVod.vod_name} - ${epName} | 缓冲:${(player.bufferedEnd()-now).toFixed(1)}s`;
+                    const vid = document.querySelector('video');
+                    const res = vid ? `${vid.videoWidth}x${vid.videoHeight}` : '检测中';
+                    document.getElementById('v-details').innerText = `正在播放：${currentVod.vod_name} - ${epName} | 清晰度：${res} | 缓冲：${(player.bufferedEnd()-now).toFixed(1)}s`;
                 }
 
-                // 自动连播逻辑
-                if(settings.auto && duration > 0) {
-                    const timeLeft = duration - now;
-                    if(timeLeft <= (settings.end || 0) + 1) {
-                        playNext();
-                    }
+                // 自动连播
+                if(settings.auto && duration > 0 && (duration - now <= (settings.end || 0) + 1)) {
+                    playNext();
                 }
             });
         });
@@ -256,13 +254,14 @@
     }
     
     async function switchSource(url) {
-        document.getElementById('v-details').innerText = "正在匹配源资源...";
+        const oldDetails = document.getElementById('v-details').innerText;
+        document.getElementById('v-details').innerText = "🔄 正在匹配目标源资源，请稍后...";
         const d = await smartFetch(`${url}${url.includes('?')?'&':'?'}ac=detail&wd=${encodeURIComponent(currentVod.vod_name)}`);
         if(d && d.list && d.list.length > 0) {
             reqDetail(url, d.list[0].vod_id);
         } else {
             alert("该源无匹配资源");
-            document.getElementById('v-details').innerText = `正在播放：${currentVod.vod_name} - ${currentEpName}`;
+            document.getElementById('v-details').innerText = oldDetails;
         }
     }
 
@@ -292,16 +291,7 @@
         if(curIdx > -1 && curIdx < eps.length - 1) {
             const next = eps[curIdx + 1];
             play(next.u, next.n);
-            // 选集按钮状态同步
-            setTimeout(() => {
-                const btns = document.querySelectorAll('.ep-btn');
-                btns.forEach(b => {
-                    if(b.innerText === next.n) {
-                        btns.forEach(all => all.classList.remove('active'));
-                        b.classList.add('active');
-                    }
-                });
-            }, 500);
+            setTimeout(renderRange, 500); // 刷新界面集数状态
         }
     }
 
@@ -315,7 +305,7 @@
     }
 
     function toggleModal(s) { document.getElementById('mgr-modal').style.display = s?'flex':'none'; if(s) renderMgr(); }
-    function renderMgr() { document.getElementById('api-mgr-list').innerHTML = apiList.map((a, i) => `<div style="padding:10px; display:flex; justify-content:space-between; border-bottom:1px solid #eee;"><span>${a.name}</span><span style="color:red; cursor:pointer;" onclick="apiList.splice(${i},1);renderMgr();localStorage.setItem('joe_v21_apis',JSON.stringify(apiList))">删除</span></div>`).join(''); }
+    function renderMgr() { document.getElementById('api-mgr-list').innerHTML = apiList.map((a, i) => `<div style="padding:10px; display:flex; justify-content:space-between; border-bottom:1px solid #eee;"><span>${a.name} (${a.delay||'--'}ms)</span><span style="color:red; cursor:pointer;" onclick="apiList.splice(${i},1);renderMgr();localStorage.setItem('joe_v21_apis',JSON.stringify(apiList))">删除</span></div>`).join(''); }
     
     async function batchAdd() {
         const lines = document.getElementById('api-input').value.split('\n').filter(l => l.includes('http'));
@@ -327,7 +317,7 @@
                 if(idx > -1) apiList[idx] = item; else apiList.push(item);
             }
         }
-        apiList.sort((a,b) => (a.delay || 999) - (b.delay || 999));
+        apiList.sort((a,b) => (a.delay || 9999) - (b.delay || 9999));
         localStorage.setItem('joe_v21_apis', JSON.stringify(apiList));
         location.reload();
     }
@@ -345,7 +335,7 @@
             localStorage.setItem('joe_v21_his', JSON.stringify(data.his || {}));
             localStorage.setItem('joe_v21_set', JSON.stringify(data.set || {}));
             location.reload();
-        } catch(e) { alert("格式错误"); }
+        } catch(e) { alert("配置无效"); }
     }
 
     function closePlayer() { if(player) player.pause(); document.getElementById('player-page').style.display='none'; route(currentT || 'home'); }
@@ -356,8 +346,8 @@
         currentT = id === 'home' ? '' : id;
         renderHistory();
         const view = document.getElementById('main-view');
-        view.innerHTML = `<div style="text-align:center; padding:50px;">📡 正在加载...</div>`;
-        if(!apiList.length) return view.innerHTML = `<div style="text-align:center; padding:50px;">请先添加线路</div>`;
+        view.innerHTML = `<div style="text-align:center; padding:50px;">📡 正在获取推荐...</div>`;
+        if(!apiList.length) return view.innerHTML = `<div style="text-align:center; padding:50px;">请点击右上角配置添加线路</div>`;
         
         const data = await smartFetch(`${apiList[0].url}${apiList[0].url.includes('?')?'&':'?'}ac=detail&t=${currentT}`);
         if(data && data.list) {
@@ -366,7 +356,7 @@
                 return `<div class="card" onclick="reqDetail('${apiList[0].url}','${v.vod_id}')"><img src="${v.vod_pic}" onerror="this.src='https://via.placeholder.com/200x300?text=No+Pic'">${h}<div class="info">${v.vod_name}</div></div>`;
             }).join('')}</div>`;
         } else {
-            view.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">请求失败，请更换线路。</div>`;
+            view.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">主源加载失败，请在设置中通过“测速”切换备用源。</div>`;
         }
     }
     window.onload = () => route('home');
