@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>JOE TV V21.14 | 最终稳定修复版</title>
+    <title>JOE TV V22.01 | 稳定增强版</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
         :root { --main: #6c5ce7; --bg: #f4f7f6; --text: #2d3436; }
@@ -49,7 +49,7 @@
 
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 3000; backdrop-filter: blur(4px); }
         .modal-body { background: #fff; width: 450px; padding: 25px; border-radius: 15px; }
-        textarea { width: 100%; height: 100px; margin: 10px 0; border-radius: 8px; padding: 10px; box-sizing: border-box; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; border-radius: 8px; padding: 10px; box-sizing: border-box; font-family: monospace; font-size: 12px; }
         .mgr-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .mgr-btn { padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; }
     </style>
@@ -57,7 +57,7 @@
 <body>
 
 <header>
-    <div class="logo" onclick="location.reload()">JOE TV</div>
+    <div class="logo" onclick="location.reload()">JOE TV V22.01</div>
     <div class="nav" id="main-nav">
         <div class="active" onclick="route('home', this)">🏠 首页</div>
         <div onclick="route('1', this)">电影</div>
@@ -67,7 +67,7 @@
         <div style="background:#fff3e0!important;color:#e65100!important" onclick="toggleModal(true)">⚙️ 配置/同步</div>
     </div>
     <div class="search-box">
-        <input type="text" id="kw" placeholder="搜索或粘贴配置码..." onkeydown="if(event.keyCode==13) handleQuickIn()">
+        <input type="text" id="kw" placeholder="搜索资源或粘贴配置码..." onkeydown="if(event.keyCode==13) handleQuickIn()">
     </div>
 </header>
 
@@ -97,7 +97,7 @@
             </div>
         </div>
         <div class="side-panel">
-            <div class="panel-title">📡 线路切换 (由快到慢)</div>
+            <div class="panel-title">📡 线路切换 (已按延迟排序)</div>
             <div class="tab-bar" id="api-tabs"></div>
             <div class="panel-title">🔢 选集播放</div>
             <div class="tab-bar" id="range-tabs"></div>
@@ -108,13 +108,13 @@
 
 <div id="mgr-modal" class="modal">
     <div class="modal-body">
-        <h3>管理与测速</h3>
-        <div id="api-mgr-list" style="max-height:120px; overflow-y:auto; border:1px solid #eee; margin-bottom:10px; font-size:12px;"></div>
-        <textarea id="api-input" placeholder="单行URL或配置码..."></textarea>
+        <h3 style="margin-top:0">配置管理 V22.01</h3>
+        <div id="api-mgr-list" style="max-height:120px; overflow-y:auto; border:1px solid #eee; margin-bottom:10px; font-size:12px; border-radius:8px"></div>
+        <textarea id="api-input" placeholder="支持线路URL、多行URL、或加密配置码"></textarea>
         <div class="mgr-btns">
-            <button class="mgr-btn" style="background:var(--main); color:#fff" onclick="batchAdd()">测速并排序</button>
-            <button class="mgr-btn" style="background:#00b894; color:#fff" onclick="importConfig()">导入配置码</button>
-            <button class="mgr-btn" style="background:#34495e; color:#fff" onclick="exportConfig()">导出配置码</button>
+            <button class="mgr-btn" style="background:var(--main); color:#fff" onclick="batchAdd()">测速并排行</button>
+            <button class="mgr-btn" style="background:#00b894; color:#fff" onclick="importConfig()">导入配置</button>
+            <button class="mgr-btn" style="background:#34495e; color:#fff" onclick="exportConfig()">导出配置</button>
             <button class="mgr-btn" style="background:#999; color:#fff" onclick="toggleModal(false)">关闭</button>
         </div>
     </div>
@@ -122,13 +122,11 @@
 
 <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 <script>
-    // 关键：严格保持 joe_v21_xxx 的 key 名以恢复历史记录
     let player = null, apiList = JSON.parse(localStorage.getItem('joe_v21_apis') || '[]');
     let history = JSON.parse(localStorage.getItem('joe_v21_his') || '{}');
     let settings = JSON.parse(localStorage.getItem('joe_v21_set') || '{"start":0,"end":0,"auto":true}');
     let currentVod = null, currentApi = '', currentT = '';
 
-    // 搜索与导入识别
     function handleQuickIn() {
         const val = document.getElementById('kw').value.trim();
         if(val.length > 100) { document.getElementById('api-input').value = val; importConfig(); } 
@@ -159,9 +157,8 @@
     async function doGlobalSearch() {
         const kw = document.getElementById('kw').value.trim();
         if(!kw) return;
-        document.getElementById('history-section').style.display = 'none';
         const view = document.getElementById('main-view');
-        view.innerHTML = `<div class="section-h">🔍 正在搜索 "${kw}"...</div><div class="grid" id="search-res"></div>`;
+        view.innerHTML = `<div class="section-h">🔍 搜索：${kw}</div><div class="grid" id="search-res"></div>`;
         apiList.forEach(async (api) => {
             const d = await smartFetch(`${api.url}${api.url.includes('?')?'&':'?'}ac=detail&wd=${encodeURIComponent(kw)}`);
             if(d && d.list) {
@@ -219,8 +216,8 @@
         player.src({ src: url, type: 'application/x-mpegURL' });
         
         player.on('error', () => { 
-            document.getElementById('v-details').innerText = "加载失败，尝试重连中...";
-            setTimeout(() => { player.load(); player.play(); }, 2000);
+            document.getElementById('v-details').innerText = "加载失败，尝试重连...";
+            setTimeout(() => { if(player && !player.isDisposed()){player.load(); player.play();} }, 2500);
         });
 
         player.ready(() => {
@@ -232,7 +229,7 @@
                 localStorage.setItem('joe_v21_his', JSON.stringify(history));
                 if(now % 2 < 0.5) {
                     const vid = document.querySelector('video');
-                    document.getElementById('v-details').innerText = `${vid.videoWidth}x${vid.videoHeight} | 缓冲:${(player.bufferedEnd()-now).toFixed(1)}s`;
+                    if(vid) document.getElementById('v-details').innerText = `${vid.videoWidth}x${vid.videoHeight} | 缓冲:${(player.bufferedEnd()-now).toFixed(1)}s`;
                 }
                 if(settings.auto && settings.end > 0 && (player.duration() - now < settings.end)) playNext();
             });
@@ -245,8 +242,13 @@
     }
     
     async function switchSource(url) {
+        // 逻辑修改：不再提示无关内容，直接判断是否有匹配
         const d = await smartFetch(`${url}${url.includes('?')?'&':'?'}ac=detail&wd=${encodeURIComponent(currentVod.vod_name)}`);
-        if(d && d.list.length) reqDetail(url, d.list[0].vod_id); else alert("该源匹配失败");
+        if(d && d.list && d.list.length > 0) {
+            reqDetail(url, d.list[0].vod_id);
+        } else {
+            alert("该源无匹配资源");
+        }
     }
 
     function renderRange() {
@@ -282,7 +284,7 @@
     function exportConfig() {
         const data = { apis: apiList, his: history, set: settings };
         document.getElementById('api-input').value = btoa(encodeURIComponent(JSON.stringify(data)));
-        alert("已生成配置码，请复制！");
+        alert("配置已导出至文本框");
     }
 
     function importConfig() {
@@ -292,7 +294,7 @@
             localStorage.setItem('joe_v21_his', JSON.stringify(data.his || {}));
             localStorage.setItem('joe_v21_set', JSON.stringify(data.set || {}));
             location.reload();
-        } catch(e) { alert("配置码错误！"); }
+        } catch(e) { alert("格式无效"); }
     }
 
     function closePlayer() { if(player) player.pause(); document.getElementById('player-page').style.display='none'; route(currentT || 'home'); }
@@ -303,10 +305,9 @@
         currentT = id === 'home' ? '' : id;
         renderHistory();
         const view = document.getElementById('main-view');
-        view.innerHTML = `<div style="text-align:center; padding:50px;">正在加载...</div>`;
-        if(!apiList.length) return view.innerHTML = `<div style="text-align:center; padding:50px;">点击右上角添加线路</div>`;
+        view.innerHTML = `<div style="text-align:center; padding:50px;">正在获取数据...</div>`;
+        if(!apiList.length) return view.innerHTML = `<div style="text-align:center; padding:50px;">点击配置添加线路</div>`;
         
-        // 关键修复：确保分类请求能获取数据
         const data = await smartFetch(`${apiList[0].url}${apiList[0].url.includes('?')?'&':'?'}ac=detail&t=${currentT}`);
         if(data && data.list) {
             view.innerHTML = `<div class="section-h">${id==='home'?'🔥 热门推荐':'🎬 结果列表'}</div><div class="grid">${data.list.map(v => {
@@ -314,7 +315,7 @@
                 return `<div class="card" onclick="reqDetail('${apiList[0].url}','${v.vod_id}')"><img src="${v.vod_pic}" onerror="this.src='https://via.placeholder.com/200x300?text=No+Pic'">${h}<div class="info">${v.vod_name}</div></div>`;
             }).join('')}</div>`;
         } else {
-            view.innerHTML = `<div style="text-align:center; padding:50px;">当前源响应异常，请点击右上角进行测速切换。</div>`;
+            view.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">当前线路繁忙，请重试或切换首选源。</div>`;
         }
     }
     window.onload = () => route('home');
