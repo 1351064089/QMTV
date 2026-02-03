@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>JOE TV V21.14 | 导入监测增强版</title>
+    <title>JOE TV V21.14 | 配置同步与测速增强版</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
         :root { --main: #6c5ce7; --bg: #f4f7f6; --text: #2d3436; }
@@ -53,13 +53,15 @@
 
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 3000; backdrop-filter: blur(4px); }
         .modal-body { background: #fff; width: 450px; padding: 25px; border-radius: 15px; }
-        textarea { width: 100%; height: 120px; margin: 15px 0; border-radius: 8px; padding: 10px; box-sizing: border-box; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; border-radius: 8px; padding: 10px; box-sizing: border-box; font-family: monospace; font-size: 12px; }
 
-        /* 新增：导入状态监控样式 */
-        #import-console { margin-top: 10px; background: #f8f9fa; border: 1px solid #eee; border-radius: 8px; padding: 10px; display: none; }
+        #import-console { margin: 10px 0; background: #f8f9fa; border-radius: 8px; padding: 10px; display: none; border: 1px solid #eee; }
         .pg-bar { height: 4px; background: #eee; border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
         #pg-value { height: 100%; background: var(--main); width: 0%; transition: 0.3s; }
-        #st-text { font-size: 11px; color: #666; max-height: 60px; overflow-y: auto; line-height: 1.6; font-family: monospace; }
+        #st-text { font-size: 11px; color: #666; max-height: 50px; overflow-y: auto; line-height: 1.6; }
+        
+        .mgr-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .mgr-btn { padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -72,10 +74,10 @@
         <div onclick="route('2', this)">剧集</div>
         <div onclick="route('3', this)">综艺</div>
         <div onclick="route('4', this)">动漫</div>
-        <div style="background:#fff3e0!important;color:#e65100!important" onclick="toggleModal(true)">⚙️ 线路管理</div>
+        <div style="background:#fff3e0!important;color:#e65100!important" onclick="toggleModal(true)">⚙️ 线路/同步</div>
     </div>
     <div class="search-box">
-        <input type="text" id="kw" placeholder="输入关键词搜索..." onkeydown="if(event.keyCode==13) doGlobalSearch()">
+        <input type="text" id="kw" placeholder="关键词或粘贴配置码..." onkeydown="if(event.keyCode==13) handleSearch()">
     </div>
 </header>
 
@@ -107,7 +109,7 @@
             </div>
         </div>
         <div class="side-panel">
-            <div class="panel-title">📡 线路切换</div>
+            <div class="panel-title">📡 线路切换 (已按延迟排序)</div>
             <div class="tab-bar" id="api-tabs"></div>
             <div class="panel-title">🔢 选集播放</div>
             <div class="tab-bar" id="range-tabs"></div>
@@ -118,17 +120,24 @@
 
 <div id="mgr-modal" class="modal">
     <div class="modal-body">
-        <h3>线路配置</h3>
-        <div id="api-mgr-list" style="max-height:150px; overflow-y:auto; border:1px solid #eee; margin-bottom:10px;"></div>
+        <h3 style="margin-top:0">配置管理</h3>
+        <div id="api-mgr-list" style="max-height:120px; overflow-y:auto; border:1px solid #eee; margin-bottom:10px; font-size:12px;"></div>
         
         <div id="import-console">
             <div class="pg-bar"><div id="pg-value"></div></div>
-            <div id="st-text">准备就绪...</div>
+            <div id="st-text">等待操作...</div>
         </div>
 
-        <textarea id="api-input" placeholder="输入接口URL，一行一个..."></textarea>
-        <button id="save-btn" onclick="batchAdd()" style="width:100%; padding:12px; background:var(--main); color:#fff; border:none; border-radius:8px;">确认添加</button>
-        <button onclick="toggleModal(false)" style="width:100%; margin-top:10px; border:none; background:none; color:#999;">关闭</button>
+        <textarea id="api-input" placeholder="支持：
+1. 线路URL (一行一个)
+2. 导出的配置码"></textarea>
+        
+        <div class="mgr-btns">
+            <button class="mgr-btn" style="background:var(--main); color:#fff;" onclick="batchAdd()">添加并测速</button>
+            <button class="mgr-btn" style="background:#00b894; color:#fff;" onclick="importConfig()">导入配置码</button>
+            <button class="mgr-btn" style="background:#34495e; color:#fff;" onclick="exportConfig()">导出配置码</button>
+            <button class="mgr-btn" style="background:#999; color:#fff;" onclick="toggleModal(false)">关闭窗口</button>
+        </div>
     </div>
 </div>
 
@@ -139,7 +148,6 @@
     let settings = JSON.parse(localStorage.getItem('joe_v21_set') || '{"start":0,"end":0,"auto":true}');
     let currentVod = null, currentApi = '', currentT = '';
 
-    // 统一的状态更新函数
     function logStatus(msg, percent) {
         document.getElementById('import-console').style.display = 'block';
         const st = document.getElementById('st-text');
@@ -148,52 +156,59 @@
     }
 
     async function smartFetch(url) {
+        const start = Date.now();
         try {
             const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
             const text = await res.text();
-            // 兼容 XML 格式
+            const delay = Date.now() - start;
+            
             if (text.includes('<?xml') || text.includes('<rss')) {
                 const xml = new DOMParser().parseFromString(text, "text/xml");
-                const vlist = Array.from(xml.querySelectorAll('video')).map(v => ({
+                return { name: xml.querySelector('rss')?.getAttribute('name') || 'XML源', list: Array.from(xml.querySelectorAll('video')).map(v => ({
                     vod_id: v.querySelector('id')?.textContent || v.querySelector('last')?.textContent,
                     vod_name: v.querySelector('name')?.textContent,
                     vod_pic: v.querySelector('pic')?.textContent,
                     vod_play_url: v.querySelector('dl dd')?.textContent || '',
                     vod_content: v.querySelector('des')?.textContent || ''
-                }));
-                return { name: xml.querySelector('rss')?.getAttribute('name') || 'XML源', list: vlist };
+                })), delay };
             }
-            // 兼容 JSON 格式 (包含 josn 拼写错误)
             const json = JSON.parse(text);
-            return { name: json.source?.name || 'JSON源', list: json.list || [] };
+            return { name: json.source?.name || 'JSON源', list: json.list || [], delay };
         } catch(e) { return null; }
     }
 
-    // --- 搜索逻辑：显示来源 ---
+    async function handleSearch() {
+        const val = document.getElementById('kw').value.trim();
+        if(val.length > 50) { // 可能是配置码
+            document.getElementById('api-input').value = val;
+            importConfig();
+        } else {
+            doGlobalSearch();
+        }
+    }
+
     async function doGlobalSearch() {
         const kw = document.getElementById('kw').value.trim();
         if(!kw) return;
         document.getElementById('history-section').style.display = 'none';
         const view = document.getElementById('main-view');
-        view.innerHTML = `<div class="section-h">🔍 正在检索 "${kw}"...</div><div class="grid" id="search-res"></div>`;
+        view.innerHTML = `<div class="section-h">🔍 正在多源检索 "${kw}"...</div><div class="grid" id="search-res"></div>`;
         
-        const results = await Promise.allSettled(apiList.map(api => smartFetch(`${api.url}${api.url.includes('?')?'&':'?'}ac=detail&wd=${encodeURIComponent(kw)}`)));
-        
-        const container = document.getElementById('search-res');
-        results.forEach((res, idx) => {
-            if(res.status === 'fulfilled' && res.value) {
-                const apiName = apiList[idx].name;
-                container.innerHTML += res.value.list.map(v => `
-                    <div class="card" onclick="reqDetail('${apiList[idx].url}','${v.vod_id}')">
-                        <div class="source-tag">${apiName}</div>
-                        <img src="${v.vod_pic || 'https://via.placeholder.com/150x220?text=No+Pic'}">
+        // 搜索时不改变 apiList 顺序，但在结果中标记来源
+        apiList.forEach(async (api) => {
+            const res = await smartFetch(`${api.url}${api.url.includes('?')?'&':'?'}ac=detail&wd=${encodeURIComponent(kw)}`);
+            if(res && res.list) {
+                const container = document.getElementById('search-res');
+                container.innerHTML += res.list.map(v => `
+                    <div class="card" onclick="reqDetail('${api.url}','${v.vod_id}')">
+                        <div class="source-tag">${api.name}</div>
+                        <img src="${v.vod_pic || 'https://via.placeholder.com/150x220?text=JOE+TV'}">
                         <div class="info">${v.vod_name}</div>
                     </div>`).join('');
             }
         });
     }
 
-    // --- 详情与记录 ---
     function renderHistory() {
         const hSec = document.getElementById('history-section');
         const hRow = document.getElementById('history-row');
@@ -228,9 +243,7 @@
         if(his) {
             const target = currentVod.eps.find(e => e.n === his.ep);
             if(target) play(target.u, target.n, null, his.time);
-        } else if(currentVod.eps.length > 0) {
-            play(currentVod.eps[0].u, currentVod.eps[0].n);
-        }
+        } else if(currentVod.eps.length > 0) play(currentVod.eps[0].u, currentVod.eps[0].n);
     }
 
     function play(url, epName, el, startTime = 0) {
@@ -259,7 +272,7 @@
 
     function renderApiTabs() { 
         document.getElementById('api-tabs').innerHTML = apiList.map(api => `
-            <div class="tab-item ${api.url===currentApi?'active':''}" onclick="switchSource('${api.url}')">${api.name}</div>`).join(''); 
+            <div class="tab-item ${api.url===currentApi?'active':''}" onclick="switchSource('${api.url}')">${api.name} <small>${api.delay||''}ms</small></div>`).join(''); 
     }
     
     async function switchSource(url) {
@@ -281,34 +294,61 @@
     function playNext() { const n = document.querySelector('.ep-btn.active')?.nextElementSibling; if(n) n.click(); }
     function saveSettings() { settings = { start: parseInt(document.getElementById('set-start').value)||0, end: parseInt(document.getElementById('set-end').value)||0, auto: document.getElementById('set-auto').checked }; localStorage.setItem('joe_v21_set', JSON.stringify(settings)); }
     function toggleModal(s) { document.getElementById('mgr-modal').style.display = s?'flex':'none'; if(s) { renderMgr(); document.getElementById('import-console').style.display='none'; } }
-    function renderMgr() { document.getElementById('api-mgr-list').innerHTML = apiList.map((a, i) => `<div style="padding:10px; display:flex; justify-content:space-between; border-bottom:1px solid #eee;"><span>${a.name}</span><span style="color:red; cursor:pointer;" onclick="apiList.splice(${i},1);renderMgr();localStorage.setItem('joe_v21_apis',JSON.stringify(apiList))">删除</span></div>`).join(''); }
+    function renderMgr() { document.getElementById('api-mgr-list').innerHTML = apiList.map((a, i) => `<div style="padding:8px; display:flex; justify-content:space-between; border-bottom:1px solid #eee;"><span>${a.name} (${a.delay||'未知'}ms)</span><span style="color:red; cursor:pointer;" onclick="apiList.splice(${i},1);renderMgr();localStorage.setItem('joe_v21_apis',JSON.stringify(apiList))">删除</span></div>`).join(''); }
     
-    // --- 修改后的批量添加函数：带进度和状态 ---
+    // --- 批量添加 + 测速排行 ---
     async function batchAdd() {
-        const lines = document.getElementById('api-input').value.split('\n').filter(l => l.trim() !== "");
-        if(!lines.length) return;
+        const lines = document.getElementById('api-input').value.split('\n').filter(l => l.trim().startsWith('http'));
+        if(!lines.length) return alert("请输入有效的http链接");
         
-        document.getElementById('st-text').innerHTML = "";
-        const btn = document.getElementById('save-btn');
-        btn.disabled = true; btn.innerText = "正在导入...";
-
         for(let i=0; i < lines.length; i++) {
             let url = lines[i].trim();
-            let percent = Math.round(((i + 1) / lines.length) * 100);
-            logStatus(`正在连接: ${url.substring(0,30)}...`, percent);
-            
+            logStatus(`正在测速: ${url.substring(0,30)}...`, Math.round(((i+1)/lines.length)*100));
             const d = await smartFetch(url + (url.includes('?') ? '&' : '?') + 'ac=list');
             if(d) {
-                apiList.push({name: d.name, url: url});
-                logStatus(`<span style="color:green">成功: ${d.name}</span>`, percent);
+                // 如果已存在则更新，不存在则添加
+                const idx = apiList.findIndex(a => a.url === url);
+                const item = {name: d.name, url: url, delay: d.delay};
+                if(idx > -1) apiList[idx] = item; else apiList.push(item);
+                logStatus(`<span style="color:green">成功: ${d.name} (${d.delay}ms)</span>`);
             } else {
-                logStatus(`<span style="color:red">失败: 接口无响应</span>`, percent);
+                logStatus(`<span style="color:red">跳过: 无法连接</span>`);
             }
         }
-        
+        // 按延迟从低到高排序
+        apiList.sort((a, b) => (a.delay || 9999) - (b.delay || 9999));
         localStorage.setItem('joe_v21_apis', JSON.stringify(apiList));
-        logStatus(`<b>全部处理完成，即将刷新页面...</b>`, 100);
+        logStatus(`<b>排序完成，响应最快的已置顶！</b>`, 100);
         setTimeout(() => location.reload(), 1500);
+    }
+
+    // --- 导出配置 ---
+    function exportConfig() {
+        const data = { apis: apiList, his: history, set: settings };
+        const code = btoa(encodeURIComponent(JSON.stringify(data)));
+        document.getElementById('api-input').value = code;
+        logStatus("配置码已生成在上方输入框，请复制保存。", 100);
+        alert("配置已导出，请复制输入框内的内容！");
+    }
+
+    // --- 导入配置 ---
+    function importConfig() {
+        try {
+            const code = document.getElementById('api-input').value.trim();
+            const data = JSON.parse(decodeURIComponent(atob(code)));
+            if(data.apis) {
+                apiList = data.apis;
+                history = data.his || {};
+                settings = data.set || settings;
+                localStorage.setItem('joe_v21_apis', JSON.stringify(apiList));
+                localStorage.setItem('joe_v21_his', JSON.stringify(history));
+                localStorage.setItem('joe_v21_set', JSON.stringify(settings));
+                alert("导入成功！页面即将刷新");
+                location.reload();
+            }
+        } catch(e) {
+            alert("配置码无效，请检查！");
+        }
     }
 
     function closePlayer() { if(player) player.pause(); document.getElementById('player-page').style.display='none'; route(currentT || 'home'); }
@@ -320,10 +360,11 @@
         renderHistory();
         const view = document.getElementById('main-view');
         view.innerHTML = `<div style="text-align:center; padding:50px;">正在努力加载...</div>`;
-        if(!apiList.length) return;
+        if(!apiList.length) return view.innerHTML = `<div style="text-align:center; padding:50px;">请先点击右上角 [线路/同步] 添加源</div>`;
+        
         const data = await smartFetch(`${apiList[0].url}${apiList[0].url.includes('?')?'&':'?'}ac=detail&t=${currentT}`);
         if(data) {
-            view.innerHTML = `<div class="section-h">${id==='home'?'🔥 热门推荐':'🎬 结果列表'}</div><div class="grid">${data.list.map(v => {
+            view.innerHTML = `<div class="section-h">${id==='home'?'🔥 热门推荐 (来自首选源)':'🎬 结果列表'}</div><div class="grid">${data.list.map(v => {
                 const h = history[v.vod_name] ? `<div class="his-tag">📍 ${history[v.vod_name].ep}</div>` : '';
                 return `<div class="card" onclick="reqDetail('${apiList[0].url}','${v.vod_id}')"><img src="${v.vod_pic || 'https://via.placeholder.com/150x220?text=No+Pic'}">${h}<div class="info">${v.vod_name}</div></div>`;
             }).join('')}</div>`;
