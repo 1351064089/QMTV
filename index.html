@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>JOE TV V21.14 | 搜索源可见版</title>
+    <title>JOE TV V21.16 | 订阅兼容版</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
         :root { --main: #6c5ce7; --bg: #f4f7f6; --text: #2d3436; }
@@ -14,7 +14,7 @@
         .nav { display: flex; gap: 8px; flex: 1; overflow-x: auto; scrollbar-width: none; }
         .nav div { padding: 6px 15px; border-radius: 20px; cursor: pointer; font-size: 13px; background: #eee; white-space: nowrap; font-weight: bold; }
         .nav .active { background: var(--main); color: #fff; }
-        .search-box input { padding: 8px 15px; border-radius: 20px; border: 1px solid #ddd; outline: none; width: 200px; }
+        .search-box input { padding: 8px 15px; border-radius: 20px; border: 1px solid #ddd; outline: none; width: 220px; }
 
         .container { max-width: 1600px; margin: 20px auto; padding: 0 15px; }
         .section-h { font-size: 18px; font-weight: bold; margin: 25px 0 15px; display: flex; align-items: center; justify-content: space-between; }
@@ -24,16 +24,14 @@
         .card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
         .card .info { padding: 8px; text-align: center; font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        /* 标签：左上角是来源，右上角是进度 */
-        .source-tag { position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
-        .his-tag { position: absolute; top: 5px; right: 5px; background: var(--main); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+        .source-tag { position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; z-index: 2; }
+        .his-tag { position: absolute; top: 5px; right: 5px; background: var(--main); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; z-index: 2; }
 
         .history-row { display: flex; gap: 15px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
         .history-item { min-width: 160px; background: #fff; border-radius: 8px; overflow: hidden; cursor: pointer; border: 1px solid #eee; }
         .history-item img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
         .history-item .h-title { padding: 5px; font-size: 11px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* 播放页 */
         #player-page { position: fixed; inset: 0; background: #f4f4f4; z-index: 2000; display: none; overflow-y: auto; }
         .p-layout { display: grid; grid-template-columns: 1fr 380px; gap: 20px; padding: 20px; max-width: 1600px; margin: 0 auto; }
         .v-box { background: #000; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; position: relative; }
@@ -54,8 +52,9 @@
         .setting-row input { width: 50px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; }
 
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 3000; backdrop-filter: blur(4px); }
-        .modal-body { background: #fff; width: 450px; padding: 25px; border-radius: 15px; }
-        textarea { width: 100%; height: 120px; margin: 15px 0; border-radius: 8px; padding: 10px; box-sizing: border-box; }
+        .modal-body { background: #fff; width: 500px; padding: 25px; border-radius: 15px; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; border-radius: 8px; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; }
+        .mgr-btn { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -64,14 +63,12 @@
     <div class="logo" onclick="location.reload()">JOE TV</div>
     <div class="nav" id="main-nav">
         <div class="active" onclick="route('home', this)">🏠 首页</div>
-        <div onclick="route('1', this)">电影</div>
-        <div onclick="route('2', this)">剧集</div>
-        <div onclick="route('3', this)">综艺</div>
-        <div onclick="route('4', this)">动漫</div>
+        <div onclick="route('1', this)">电影</div><div onclick="route('2', this)">剧集</div>
+        <div onclick="route('3', this)">综艺</div><div onclick="route('4', this)">动漫</div>
         <div style="background:#fff3e0!important;color:#e65100!important" onclick="toggleModal(true)">⚙️ 线路管理</div>
     </div>
     <div class="search-box">
-        <input type="text" id="kw" placeholder="输入关键词搜索..." onkeydown="if(event.keyCode==13) doGlobalSearch()">
+        <input type="text" id="kw" placeholder="输入搜索或Luna订阅地址..." onkeydown="if(event.keyCode==13) handleSearchInput()">
     </div>
 </header>
 
@@ -87,10 +84,7 @@
     <div style="padding:15px 20px; color:var(--main); cursor:pointer; font-weight:bold;" onclick="closePlayer()">🔙 返回列表</div>
     <div class="p-layout">
         <div class="p-main">
-            <div class="v-box">
-                <div id="v-details">等待加载...</div>
-                <div id="v-wrapper"></div>
-            </div>
+            <div class="v-box"><div id="v-details">等待加载...</div><div id="v-wrapper"></div></div>
             <div class="setting-card">
                 <h3 id="v-title" style="margin: 0 0 15px 0;"></h3>
                 <div class="setting-row">
@@ -103,10 +97,8 @@
             </div>
         </div>
         <div class="side-panel">
-            <div class="panel-title">📡 线路切换</div>
-            <div class="tab-bar" id="api-tabs"></div>
-            <div class="panel-title">🔢 选集播放</div>
-            <div class="tab-bar" id="range-tabs"></div>
+            <div class="panel-title">📡 线路切换</div><div class="tab-bar" id="api-tabs"></div>
+            <div class="panel-title">🔢 选集播放</div><div class="tab-bar" id="range-tabs"></div>
             <div class="ep-grid" id="ep-grid"></div>
         </div>
     </div>
@@ -114,11 +106,13 @@
 
 <div id="mgr-modal" class="modal">
     <div class="modal-body">
-        <h3>线路配置</h3>
-        <div id="api-mgr-list" style="max-height:150px; overflow-y:auto; border:1px solid #eee; margin-bottom:10px;"></div>
-        <textarea id="api-input" placeholder="输入接口URL，一行一个..."></textarea>
-        <button onclick="batchAdd()" style="width:100%; padding:12px; background:var(--main); color:#fff; border:none; border-radius:8px;">保存并刷新</button>
-        <button onclick="toggleModal(false)" style="width:100%; margin-top:10px; border:none; background:none; color:#999;">关闭</button>
+        <h3 style="margin-top:0">配置中心</h3>
+        <div id="api-mgr-list" style="max-height:180px; overflow-y:auto; border:1px solid #eee; margin-bottom:15px; border-radius: 8px;"></div>
+        <p style="font-size:12px; color:#666; margin-bottom:5px;">👇 批量导入线路 (一行一个URL)</p>
+        <textarea id="api-input" placeholder="输入接口URL..."></textarea>
+        <button class="mgr-btn" style="background:var(--main); color:#fff;" onclick="batchAdd()">保存普通线路</button>
+        <button class="mgr-btn" style="background:#00b894; color:#fff;" onclick="importLunaSubscription()">导入 LunaTV 订阅</button>
+        <button onclick="toggleModal(false)" style="width:100%; border:none; background:none; color:#999; margin-top:5px; cursor:pointer;">取消</button>
     </div>
 </div>
 
@@ -131,7 +125,7 @@
 
     async function smartFetch(url) {
         try {
-            const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+            const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
             const text = await res.text();
             if (text.includes('<?xml')) {
                 const xml = new DOMParser().parseFromString(text, "text/xml");
@@ -142,56 +136,62 @@
                 }))};
             }
             const json = JSON.parse(text);
-            return { name: json.source?.name || 'JSON源', list: json.list || [] };
+            return { name: json.source?.name || 'JSON源', list: json.list || [], raw: json };
         } catch(e) { return null; }
     }
 
-    // --- 搜索逻辑：显示来源 ---
+    // 搜索输入判断：如果是URL则导入，如果是文字则搜索
+    function handleSearchInput() {
+        const val = document.getElementById('kw').value.trim();
+        if (val.startsWith('http')) {
+            document.getElementById('api-input').value = val;
+            importLunaSubscription();
+        } else {
+            doGlobalSearch();
+        }
+    }
+
+    // 修复部分源无法搜索的问题：采用 ac=list+wd 组合，兼容性更强
     async function doGlobalSearch() {
         const kw = document.getElementById('kw').value.trim();
         if(!kw) return;
         document.getElementById('history-section').style.display = 'none';
         const view = document.getElementById('main-view');
-        view.innerHTML = `<div class="section-h">🔍 正在检索 "${kw}"...</div><div class="grid" id="search-res"></div>`;
+        view.innerHTML = `<div class="section-h">🔍 正在检索所有源...</div><div class="grid" id="search-res"></div>`;
         
-        const results = await Promise.allSettled(apiList.map(api => smartFetch(`${api.url}${api.url.includes('?')?'&':'?'}ac=detail&wd=${encodeURIComponent(kw)}`)));
+        // 兼容性搜索：先尝试 detail 搜索，不行再尝试普通的 list 搜索
+        const results = await Promise.allSettled(apiList.map(api => 
+            smartFetch(`${api.url}${api.url.includes('?')?'&':'?'}ac=detail&wd=${encodeURIComponent(kw)}`)
+            .then(res => (res && res.list.length) ? res : smartFetch(`${api.url}${api.url.includes('?')?'&':'?'}wd=${encodeURIComponent(kw)}`))
+        ));
         
         const container = document.getElementById('search-res');
+        let count = 0;
         results.forEach((res, idx) => {
-            if(res.status === 'fulfilled' && res.value) {
-                const apiName = apiList[idx].name;
+            if(res.status === 'fulfilled' && res.value && res.value.list) {
+                count += res.value.list.length;
                 container.innerHTML += res.value.list.map(v => `
                     <div class="card" onclick="reqDetail('${apiList[idx].url}','${v.vod_id}')">
-                        <div class="source-tag">${apiName}</div>
-                        <img src="${v.vod_pic}">
+                        <div class="source-tag">${apiList[idx].name}</div>
+                        <img src="${v.vod_pic || 'https://via.placeholder.com/150x220?text=No+Pic'}">
                         <div class="info">${v.vod_name}</div>
                     </div>`).join('');
             }
         });
-    }
-
-    // --- 详情与记录 ---
-    function renderHistory() {
-        const hSec = document.getElementById('history-section');
-        const hRow = document.getElementById('history-row');
-        const hList = Object.values(history).sort((a,b) => b.date - a.date).slice(0, 10);
-        if(hList.length > 0) {
-            hSec.style.display = 'block';
-            hRow.innerHTML = hList.map(h => `
-                <div class="history-item" onclick="reqDetail('${h.apiUrl}','${h.id}')">
-                    <img src="${h.pic}"><div class="h-title">${h.name}</div>
-                    <div style="font-size:10px; color:var(--main); padding:0 8px 5px;">📍 ${h.ep}</div>
-                </div>`).join('');
-        } else hSec.style.display = 'none';
+        if(count === 0) view.innerHTML = `<div class="section-h">❌ 未在 ${apiList.length} 个源中找到资源</div>`;
     }
 
     async function reqDetail(apiUrl, id) {
         currentApi = apiUrl;
         const data = await smartFetch(`${apiUrl}${apiUrl.includes('?')?'&':'?'}ac=detail&ids=${id}`);
-        if(!data || !data.list.length) return;
+        if(!data || !data.list.length) { alert("该源无法获取详情"); return; }
         currentVod = data.list[0]; currentVod.id = id;
-        const raw = currentVod.vod_play_url.split('$$$')[0].split('#');
-        currentVod.eps = raw.filter(e => e.includes('$')).map(e => { const p = e.split('$'); return { n: p[0], u: p[1] }; });
+        
+        // 兼容多线路 $$ 分隔逻辑
+        const playInfo = currentVod.vod_play_url.split('$$$')[0];
+        currentVod.eps = playInfo.split('#').filter(e => e.includes('$')).map(e => {
+            const p = e.split('$'); return { n: p[0], u: p[1] };
+        });
 
         document.getElementById('player-page').style.display = 'block';
         document.getElementById('v-title').innerText = currentVod.vod_name;
@@ -232,17 +232,44 @@
         });
     }
 
+    // 播放页换源逻辑：根据视频标题跨源搜索
+    async function switchSource(url) {
+        const d = await smartFetch(`${url}${url.includes('?')?'&':'?'}ac=detail&wd=${encodeURIComponent(currentVod.vod_name)}`);
+        if(d && d.list.length) {
+            reqDetail(url, d.list[0].vod_id);
+        } else {
+            const d2 = await smartFetch(`${url}${url.includes('?')?'&':'?'}wd=${encodeURIComponent(currentVod.vod_name)}`);
+            if(d2 && d2.list.length) reqDetail(url, d2.list[0].vod_id);
+            else alert("该源没有同名资源");
+        }
+    }
+
+    // 导入 LunaTV 订阅专用逻辑
+    async function importLunaSubscription() {
+        const url = document.getElementById('api-input').value.trim();
+        if(!url) return alert("请输入订阅URL");
+        const res = await smartFetch(url);
+        if(res && res.raw && res.raw.list) {
+            let count = 0;
+            res.raw.list.forEach(item => {
+                if(item.api && !apiList.find(a => a.url === item.api)) {
+                    apiList.push({ name: item.name, url: item.api });
+                    count++;
+                }
+            });
+            alert(`成功导入 ${count} 条新线路！`);
+            localStorage.setItem('joe_v21_apis', JSON.stringify(apiList));
+            location.reload();
+        } else {
+            alert("订阅解析失败，请检查是否为 LunaTV 格式 JSON");
+        }
+    }
+
     function renderApiTabs() { 
         document.getElementById('api-tabs').innerHTML = apiList.map(api => `
             <div class="tab-item ${api.url===currentApi?'active':''}" onclick="switchSource('${api.url}')">${api.name}</div>`).join(''); 
     }
     
-    async function switchSource(url) {
-        const d = await smartFetch(`${url}${url.includes('?')?'&':'?'}ac=detail&wd=${encodeURIComponent(currentVod.vod_name)}`);
-        if(d && d.list.length) reqDetail(url, d.list[0].vod_id);
-        else alert("该源暂无资源");
-    }
-
     function renderRange() {
         const bar = document.getElementById('range-tabs'); bar.innerHTML = "";
         for(let i=0; i<currentVod.eps.length; i+=50) {
@@ -256,12 +283,26 @@
     function playNext() { const n = document.querySelector('.ep-btn.active')?.nextElementSibling; if(n) n.click(); }
     function saveSettings() { settings = { start: parseInt(document.getElementById('set-start').value)||0, end: parseInt(document.getElementById('set-end').value)||0, auto: document.getElementById('set-auto').checked }; localStorage.setItem('joe_v21_set', JSON.stringify(settings)); }
     function toggleModal(s) { document.getElementById('mgr-modal').style.display = s?'flex':'none'; if(s) renderMgr(); }
-    function renderMgr() { document.getElementById('api-mgr-list').innerHTML = apiList.map((a, i) => `<div style="padding:10px; display:flex; justify-content:space-between; border-bottom:1px solid #eee;"><span>${a.name}</span><span style="color:red; cursor:pointer;" onclick="apiList.splice(${i},1);renderMgr();localStorage.setItem('joe_v21_apis',JSON.stringify(apiList))">删除</span></div>`).join(''); }
+    function renderMgr() { document.getElementById('api-mgr-list').innerHTML = apiList.map((a, i) => `<div style="padding:10px; display:flex; justify-content:space-between; border-bottom:1px solid #eee; font-size:12px;"><span>${a.name}</span><span style="color:red; cursor:pointer;" onclick="apiList.splice(${i},1);renderMgr();localStorage.setItem('joe_v21_apis',JSON.stringify(apiList))">删除</span></div>`).join(''); }
     async function batchAdd() {
-        for(let l of document.getElementById('api-input').value.split('\n')) { if(l.trim()) { const d = await smartFetch(l.trim()+(l.includes('?')?'&':'?')+'ac=list'); apiList.push({name: d?d.name:'线路', url: l.trim()}); } }
+        const urls = document.getElementById('api-input').value.split('\n');
+        for(let l of urls) { if(l.trim() && l.includes('http')) { const d = await smartFetch(l.trim()+(l.includes('?')?'&':'?')+'ac=list'); apiList.push({name: d?d.name:'新线路', url: l.trim()}); } }
         localStorage.setItem('joe_v21_apis', JSON.stringify(apiList)); location.reload();
     }
     function closePlayer() { if(player) player.pause(); document.getElementById('player-page').style.display='none'; route(currentT || 'home'); }
+    function renderHistory() {
+        const hSec = document.getElementById('history-section');
+        const hRow = document.getElementById('history-row');
+        const hList = Object.values(history).sort((a,b) => b.date - a.date).slice(0, 10);
+        if(hList.length > 0) {
+            hSec.style.display = 'block';
+            hRow.innerHTML = hList.map(h => `
+                <div class="history-item" onclick="reqDetail('${h.apiUrl}','${h.id}')">
+                    <img src="${h.pic}"><div class="h-title">${h.name}</div>
+                    <div style="font-size:10px; color:var(--main); padding:0 8px 5px;">📍 ${h.ep}</div>
+                </div>`).join('');
+        } else hSec.style.display = 'none';
+    }
     function clearHistory() { if(confirm('清空记录？')) { history = {}; localStorage.setItem('joe_v21_his', '{}'); renderHistory(); } }
     
     async function route(id, el) {
@@ -270,12 +311,12 @@
         renderHistory();
         const view = document.getElementById('main-view');
         view.innerHTML = `<div style="text-align:center; padding:50px;">正在努力加载...</div>`;
-        if(!apiList.length) return;
+        if(!apiList.length) { view.innerHTML = `<div style="text-align:center; padding:50px;">请先点击右上角 [线路管理] 添加源或订阅地址</div>`; return; }
         const data = await smartFetch(`${apiList[0].url}${apiList[0].url.includes('?')?'&':'?'}ac=detail&t=${currentT}`);
         if(data) {
             view.innerHTML = `<div class="section-h">${id==='home'?'🔥 热门推荐':'🎬 结果列表'}</div><div class="grid">${data.list.map(v => {
                 const h = history[v.vod_name] ? `<div class="his-tag">📍 ${history[v.vod_name].ep}</div>` : '';
-                return `<div class="card" onclick="reqDetail('${apiList[0].url}','${v.vod_id}')"><img src="${v.vod_pic}">${h}<div class="info">${v.vod_name}</div></div>`;
+                return `<div class="card" onclick="reqDetail('${apiList[0].url}','${v.vod_id}')"><img src="${v.vod_pic || 'https://via.placeholder.com/150x220?text=No+Pic'}">${h}<div class="info">${v.vod_name}</div></div>`;
             }).join('')}</div>`;
         }
     }
