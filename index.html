@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>JOE TV V22.02 | 修复增强版</title>
+    <title>JOE TV V22.02 | 稳定典藏版</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
         :root { --main: #6c5ce7; --bg: #f4f7f6; --text: #2d3436; --error: #ff7675; --success: #00b894; }
@@ -143,18 +143,41 @@
     const HIS_KEY = 'joe_v22_his';
     const SET_KEY = 'joe_v22_set';
 
-    let player = null;
-    let apiList = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    let history = JSON.parse(localStorage.getItem(HIS_KEY) || '{}');
-    let settings = JSON.parse(localStorage.getItem(SET_KEY) || '{"start":0,"end":0,"auto":true}');
+    // ==========================================
+    // 1. 强力容错初始化 (解决JS崩溃导致按钮失效)
+    // ==========================================
+    function safeParse(key, defaultVal) {
+        try { 
+            const val = localStorage.getItem(key);
+            return val ? JSON.parse(val) : defaultVal;
+        } catch(e) { 
+            console.warn(`清理损坏的缓存: ${key}`);
+            localStorage.removeItem(key);
+            return defaultVal; 
+        }
+    }
+
+    let apiList = safeParse(STORAGE_KEY, []);
+    let history = safeParse(HIS_KEY, {});
+    let settings = safeParse(SET_KEY, {start:0, end:0, auto:true});
     let currentVod = null, currentApi = '', currentT = '', currentEpName = '';
 
-    // 初始化设置 UI
+    // 数据清洗：如果遇到老版本的纯字符串数组，自动转换，防止 map 报错崩溃
+    if (apiList.length > 0 && typeof apiList[0] === 'string') {
+        apiList = apiList.map(url => ({ name: '遗留线路', url: url, delay: 0 }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(apiList));
+    }
+    // 过滤掉无效数据
+    apiList = apiList.filter(a => a && a.url);
+
+    // 初始化 UI
     document.getElementById('set-start').value = settings.start || 0;
     document.getElementById('set-end').value = settings.end || 0;
     document.getElementById('set-auto').checked = settings.auto ?? true;
 
-    // 增强型请求，处理跨域和多种返回格式
+    // ==========================================
+    // 2. 增强型请求引擎
+    // ==========================================
     async function smartFetch(url) {
         const start = Date.now();
         const controller = new AbortController();
@@ -170,49 +193,56 @@
                 const xml = new DOMParser().parseFromString(text, "text/xml");
                 const videos = Array.from(xml.querySelectorAll('video'));
                 return { 
-                    name: xml.querySelector('rss')?.getAttribute('name') || url.split('/')[2], 
+                    name: xml.querySelector('rss')?.getAttribute('name') || new URL(url).hostname, 
                     list: videos.map(v => ({
                         vod_id: v.querySelector('id')?.textContent || v.querySelector('last')?.textContent,
                         vod_name: v.querySelector('name')?.textContent,
                         vod_pic: v.querySelector('pic')?.textContent,
                         vod_play_url: v.querySelector('dl dd')?.textContent || '',
                         vod_content: v.querySelector('des')?.textContent || ''
-                    })).filter(v => v.vod_id && v.vod_name), // 容错过滤空节点
+                    })).filter(v => v.vod_id && v.vod_name),
                     delay 
                 };
             }
             
             const json = JSON.parse(text);
-            return { name: json.source?.name || json.class?.[0]?.type_name || url.split('/')[2], list: json.list || [], delay };
+            return { name: json.source?.name || json.class?.[0]?.type_name || new URL(url).hostname, list: json.list || [], delay };
         } catch(e) { 
-            console.error("Fetch Error:", url, e);
             return null; 
         }
     }
 
+    // ==========================================
+    // 3. 搜索功能修复 (并发+安全节点渲染)
+    // ==========================================
     async function doGlobalSearch() {
         const kw = document.getElementById('kw').value.trim();
         if(!kw) return;
         const view = document.getElementById('main-view');
         view.innerHTML = `<div class="section-h">🔍 正在搜索：${kw}</div><div class="grid" id="search-res"></div>`;
+        const grid = document.getElementById('search-res');
         
-        if(!apiList.length) { alert("请先添加订阅线路！"); return; }
+        if(!apiList.length) { 
+            alert("请先添加订阅线路！"); 
+            return; 
+        }
 
         let foundCount = 0;
         const tasks = apiList.map(async (api) => {
+            if(!api || !api.url) return;
             const connector = api.url.includes('?') ? '&' : '?';
             const d = await smartFetch(`${api.url}${connector}ac=detail&wd=${encodeURIComponent(kw)}`);
             if(d && d.list && d.list.length) {
-                const grid = document.getElementById('search-res');
                 d.list.forEach(v => {
                     if(v.vod_name.includes(kw)) {
                         foundCount++;
-                        grid.innerHTML += `
+                        // 使用 insertAdjacentHTML 解决多线程渲染冲突问题
+                        grid.insertAdjacentHTML('beforeend', `
                             <div class="card" onclick="reqDetail('${api.url}','${v.vod_id}')">
-                                <div class="source-tag">${api.name}</div>
+                                <div class="source-tag">${api.name || '聚合源'}</div>
                                 <img src="${v.vod_pic}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x300?text=暂无封面'">
                                 <div class="info">${v.vod_name}</div>
-                            </div>`;
+                            </div>`);
                     }
                 });
             }
@@ -220,10 +250,13 @@
 
         await Promise.all(tasks);
         if(foundCount === 0) {
-            view.innerHTML = `<div style="text-align:center; padding:100px; color:#999;">未找到“${kw}”的相关资源，请尝试更换关键词。</div>`;
+            view.innerHTML = `<div style="text-align:center; padding:100px; color:#999;">各线路均未找到“${kw}”的相关资源，请尝试更换关键词。</div>`;
         }
     }
 
+    // ==========================================
+    // 4. 详情与播放核心逻辑
+    // ==========================================
     async function reqDetail(apiUrl, id) {
         currentApi = apiUrl;
         const connector = apiUrl.includes('?') ? '&' : '?';
@@ -259,13 +292,13 @@
         }
     }
 
+    let player = null;
     function play(url, epName, el, startTime = 0) {
         currentEpName = epName;
         if(el) {
             document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
             el.classList.add('active');
         } else {
-            // 自动高亮当前集数按钮
             setTimeout(() => {
                 const btns = document.querySelectorAll('.ep-btn');
                 btns.forEach(b => {
@@ -277,7 +310,6 @@
             }, 100);
         }
         
-        // 修复: 销毁并重建安全容器，防止 DOM 结构被 videojs 破坏
         if(player) {
             player.dispose();
             player = null;
@@ -372,12 +404,18 @@
         localStorage.setItem(SET_KEY, JSON.stringify(settings)); 
     }
 
-    function toggleModal(s) { document.getElementById('mgr-modal').style.display = s?'flex':'none'; if(s) renderMgr(); }
+    // ==========================================
+    // 5. 订阅管理面板 (确保全局挂载，永不失效)
+    // ==========================================
+    window.toggleModal = function(s) { 
+        document.getElementById('mgr-modal').style.display = s ? 'flex' : 'none'; 
+        if(s) renderMgr(); 
+    }
     
     function renderMgr() { 
         const container = document.getElementById('api-mgr-list');
         if(!apiList.length) {
-            container.innerHTML = `<div style="padding:20px;text-align:center;color:#999">暂无线路，请在下方添加</div>`;
+            container.innerHTML = `<div style="padding:20px;text-align:center;color:#999">暂无线路，请在下方添加并点击[同步并测速]</div>`;
             return;
         }
         container.innerHTML = apiList.map((a, i) => {
@@ -385,7 +423,7 @@
             return `
             <div class="api-item">
                 <div>
-                    <strong>${a.name}</strong>
+                    <strong>${a.name || '聚合线路'}</strong>
                     <span class="api-status ${isGood?'status-good':'status-bad'}">${isGood?a.delay+'ms':'超时'}</span>
                 </div>
                 <span style="color:var(--error); cursor:pointer;" onclick="deleteApi(${i})">删除</span>
@@ -393,28 +431,23 @@
         }).join(''); 
     }
 
-    function deleteApi(i) {
+    window.deleteApi = function(i) {
         apiList.splice(i, 1);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(apiList));
         renderMgr();
     }
     
-    // 修复: 使用并发请求(Promise.all)解决批量添加时的 UI 假死问题
-    async function batchAdd() {
+    window.batchAdd = async function() {
         const input = document.getElementById('api-input').value.trim();
-        const lines = input.split('\n').filter(l => l.includes('http'));
-        if(!lines.length) return alert("请输入URL");
+        const lines = input.split('\n').map(l => l.trim()).filter(l => l.startsWith('http'));
+        if(!lines.length) return alert("请输入以http(s)开头的线路URL");
 
         document.getElementById('api-input').value = "🚀 正在高并发测速同步中，请稍候...";
         
         const tasks = lines.map(async (url) => {
-            url = url.trim();
             const connector = url.includes('?') ? '&' : '?';
-            // 使用 ac=list 测试连通性是最快的
             const d = await smartFetch(`${url}${connector}ac=list`);
-            if(d) {
-                return {name: d.name, url: url, delay: d.delay};
-            }
+            if(d) return {name: d.name, url: url, delay: d.delay};
             return null;
         });
 
@@ -433,13 +466,12 @@
         location.reload();
     }
 
-    // 修复: 中文字符在 btoa 转换时的编码报错问题
-    function exportConfig() {
+    window.exportConfig = function() {
         const code = btoa(encodeURIComponent(JSON.stringify({ apis: apiList, his: history, set: settings })));
         document.getElementById('api-input').value = code;
     }
 
-    function importConfig() {
+    window.importConfig = function() {
         try {
             const str = document.getElementById('api-input').value.trim();
             const data = JSON.parse(decodeURIComponent(atob(str)));
@@ -452,8 +484,8 @@
         } catch(e) { alert("配置码无效"); }
     }
 
-    function closePlayer() { if(player) player.pause(); document.getElementById('player-page').style.display='none'; renderHistory(); }
-    function clearHistory() { history = {}; localStorage.setItem(HIS_KEY, '{}'); renderHistory(); }
+    window.closePlayer = function() { if(player) player.pause(); document.getElementById('player-page').style.display='none'; renderHistory(); }
+    window.clearHistory = function() { history = {}; localStorage.setItem(HIS_KEY, '{}'); renderHistory(); }
     
     function renderHistory() {
         const hSec = document.getElementById('history-section');
@@ -469,7 +501,10 @@
         } else hSec.style.display = 'none';
     }
 
-    async function route(id, el) {
+    // ==========================================
+    // 6. 核心路由 (防卡死机制)
+    // ==========================================
+    window.route = async function(id, el) {
         if(el) { 
             document.querySelectorAll('.nav div').forEach(d => d.classList.remove('active')); 
             el.classList.add('active'); 
@@ -480,13 +515,17 @@
         view.innerHTML = `<div style="text-align:center; padding:100px; color:#999;">正在高速拉取数据...</div>`;
         
         if(!apiList.length) {
-            view.innerHTML = `<div style="text-align:center; padding:100px;"><h2>欢迎使用</h2><p>请点击右上角 [订阅管理] 添加接口。</p></div>`;
+            view.innerHTML = `<div style="text-align:center; padding:100px;"><h2>欢迎使用</h2><p>请点击右上角 [⚙️ 订阅管理] 添加线路接口。</p></div>`;
             return;
         }
         
         const mainApi = apiList[0];
+        if(!mainApi || !mainApi.url) {
+            view.innerHTML = `<div style="text-align:center; padding:100px; color:var(--error);">订阅数据异常，请点击右上角 [⚙️ 订阅管理] 重新配置。</div>`;
+            return;
+        }
+
         const connector = mainApi.url.includes('?') ? '&' : '?';
-        // 修复: 如果是首页(currentT为空)，不要传 t 参数，否则很多源站会报错
         const queryParams = currentT ? `ac=detail&t=${currentT}` : `ac=detail`;
         const data = await smartFetch(`${mainApi.url}${connector}${queryParams}`);
         
@@ -497,7 +536,7 @@
                     <div class="info">${v.vod_name}</div>
                 </div>`).join('')}</div>`;
         } else {
-             view.innerHTML = `<div style="text-align:center; padding:100px; color:var(--error);">该分类无数据或主接口响应异常，请尝试切换其他分类或管理接口。</div>`;
+             view.innerHTML = `<div style="text-align:center; padding:100px; color:var(--error);">该分类暂时无数据，或主线路接口未响应。<br><br>建议：点击右上角 [⚙️ 订阅管理] 切换或删除失效线路。</div>`;
         }
     }
 
