@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>JOE TV V22.01 | 最终稳定版</title>
+    <title>JOE TV V22.02 | 稳定增强版</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
         :root { --main: #6c5ce7; --bg: #f4f7f6; --text: #2d3436; }
@@ -57,7 +57,7 @@
 <body>
 
 <header>
-    <div class="logo" onclick="location.reload()">JOE TV V22.01</div>
+    <div class="logo" onclick="location.reload()">JOE TV V22.02</div>
     <div class="nav" id="main-nav">
         <div class="active" onclick="route('home', this)">🏠 首页</div>
         <div onclick="route('1', this)">电影</div>
@@ -109,13 +109,13 @@
 
 <div id="mgr-modal" class="modal">
     <div class="modal-body">
-        <h3>配置与测速 V22.01</h3>
+        <h3>配置与测速 V22.02</h3>
         <div id="api-mgr-list" style="max-height:120px; overflow-y:auto; border:1px solid #eee; margin-bottom:10px; font-size:12px;"></div>
-        <textarea id="api-input" placeholder="粘贴线路URL或配置码..."></textarea>
+        <textarea id="api-input" placeholder="粘贴多行线路URL... 兼容JSON/XML"></textarea>
         <div class="mgr-btns">
             <button class="mgr-btn" style="background:var(--main); color:#fff" onclick="batchAdd()">开始测速并排序</button>
-            <button class="mgr-btn" style="background:#00b894; color:#fff" onclick="importConfig()">导入</button>
-            <button class="mgr-btn" style="background:#34495e; color:#fff" onclick="exportConfig()">导出</button>
+            <button class="mgr-btn" style="background:#00b894; color:#fff" onclick="importConfig()">导入配置码</button>
+            <button class="mgr-btn" style="background:#34495e; color:#fff" onclick="exportConfig()">导出配置码</button>
             <button class="mgr-btn" style="background:#999; color:#fff" onclick="toggleModal(false)">关闭</button>
         </div>
     </div>
@@ -134,25 +134,46 @@
         else { doGlobalSearch(); }
     }
 
-    async function smartFetch(url) {
+    // 核心增强：智能获取逻辑
+    async function smartFetch(baseUrl, params = '') {
         const start = Date.now();
+        // 1. 处理 URL 规范化 (去空格，去末尾斜杠)
+        let cleanUrl = baseUrl.trim().replace(/\/+$/, '');
+        
+        // 2. 拼接参数
+        let finalUrl = cleanUrl + (cleanUrl.includes('?') ? '&' : '?') + params;
+
         try {
-            const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+            const res = await fetch(finalUrl, { signal: AbortSignal.timeout(8000) });
             const text = await res.text();
             const delay = Date.now() - start;
-            if (text.includes('<?xml')) {
+
+            // 逻辑 A: 处理 XML 格式
+            if (text.includes('<?xml') || text.includes('<rss')) {
                 const xml = new DOMParser().parseFromString(text, "text/xml");
-                return { name: xml.querySelector('rss')?.getAttribute('name') || 'XML源', list: Array.from(xml.querySelectorAll('video')).map(v => ({
+                const sourceName = xml.querySelector('rss')?.getAttribute('name') || 
+                                   xml.querySelector('source')?.getAttribute('name') || 'XML源';
+                const videos = Array.from(xml.querySelectorAll('video')).map(v => ({
                     vod_id: v.querySelector('id')?.textContent || v.querySelector('last')?.textContent,
                     vod_name: v.querySelector('name')?.textContent,
                     vod_pic: v.querySelector('pic')?.textContent,
                     vod_play_url: v.querySelector('dl dd')?.textContent || '',
                     vod_content: v.querySelector('des')?.textContent || ''
-                })), delay };
+                }));
+                return { name: sourceName, list: videos, delay };
             }
+            
+            // 逻辑 B: 处理 JSON 格式
             const json = JSON.parse(text);
-            return { name: json.source?.name || 'JSON源', list: json.list || [], delay };
-        } catch(e) { return null; }
+            let sourceName = json.source?.name || 'JSON源';
+            // 针对某些特定的接口名称提取
+            if(json.list && json.list.length > 0 && !json.source) sourceName = "CMS资源";
+            
+            return { name: sourceName, list: json.list || [], delay };
+        } catch(e) { 
+            console.error("Fetch Error:", finalUrl, e);
+            return null; 
+        }
     }
 
     async function doGlobalSearch() {
@@ -160,17 +181,20 @@
         if(!kw) return;
         const view = document.getElementById('main-view');
         view.innerHTML = `<div class="section-h">🔍 搜索结果：${kw}</div><div class="grid" id="search-res"></div>`;
-        apiList.forEach(async (api) => {
-            const d = await smartFetch(`${api.url}${api.url.includes('?')?'&':'?'}ac=detail&wd=${encodeURIComponent(kw)}`);
-            if(d && d.list) {
-                document.getElementById('search-res').innerHTML += d.list.map(v => `
-                    <div class="card" onclick="reqDetail('${api.url}','${v.vod_id}')">
-                        <div class="source-tag">${api.name}</div>
-                        <img src="${v.vod_pic}" onerror="this.src='https://via.placeholder.com/200x300?text=No+Pic'">
-                        <div class="info">${v.vod_name}</div>
-                    </div>`).join('');
-            }
-        });
+        
+        // 限制并发搜索，防止浏览器卡死
+        for(const api of apiList) {
+            smartFetch(api.url, `ac=detail&wd=${encodeURIComponent(kw)}`).then(d => {
+                if(d && d.list && d.list.length) {
+                    document.getElementById('search-res').innerHTML += d.list.map(v => `
+                        <div class="card" onclick="reqDetail('${api.url}','${v.vod_id}')">
+                            <div class="source-tag">${api.name}</div>
+                            <img src="${v.vod_pic}" onerror="this.src='https://via.placeholder.com/200x300?text=No+Pic'">
+                            <div class="info">${v.vod_name}</div>
+                        </div>`).join('');
+                }
+            });
+        }
     }
 
     function renderHistory() {
@@ -189,11 +213,19 @@
 
     async function reqDetail(apiUrl, id) {
         currentApi = apiUrl;
-        const data = await smartFetch(`${apiUrl}${apiUrl.includes('?')?'&':'?'}ac=detail&ids=${id}`);
-        if(!data || !data.list.length) return;
+        const data = await smartFetch(apiUrl, `ac=detail&ids=${id}`);
+        if(!data || !data.list || !data.list.length) return;
         currentVod = data.list[0]; currentVod.id = id;
-        const raw = (currentVod.vod_play_url || "").split('$$$')[0].split('#');
-        currentVod.eps = raw.filter(e => e.includes('$')).map(e => { const p = e.split('$'); return { n: p[0], u: p[1] }; });
+        
+        // 解析播放列表逻辑优化
+        let rawUrl = currentVod.vod_play_url || "";
+        // 处理多线路情况，只取第一条
+        if(rawUrl.includes('$$$')) rawUrl = rawUrl.split('$$$')[0];
+        
+        currentVod.eps = rawUrl.split('#').filter(e => e.includes('$')).map(e => { 
+            const p = e.split('$'); 
+            return { n: p[0], u: p[1] }; 
+        });
 
         document.getElementById('player-page').style.display = 'block';
         document.getElementById('v-title').innerText = currentVod.vod_name;
@@ -218,11 +250,6 @@
         player = videojs('v-core', { autoplay: true, html5: { hls: { overrideNative: true } } });
         player.src({ src: url, type: 'application/x-mpegURL' });
         
-        player.on('error', () => { 
-            document.getElementById('v-details').innerText = "加载失败，重连中...";
-            setTimeout(() => { if(player && !player.isDisposed()){player.load(); player.play();} }, 2500);
-        });
-
         player.ready(() => {
             if(startTime > 0) player.currentTime(startTime);
             else if(settings.start > 0) player.currentTime(settings.start);
@@ -233,14 +260,12 @@
                 history[currentVod.vod_name] = { name: currentVod.vod_name, id: currentVod.id, pic: currentVod.vod_pic, apiUrl: currentApi, ep: epName, time: now, date: Date.now() };
                 localStorage.setItem('joe_v21_his', JSON.stringify(history));
                 
-                // 详情显示（含清晰度、集数）
                 if(now % 1 < 0.5) {
                     const vid = document.querySelector('video');
                     const res = vid ? `${vid.videoWidth}x${vid.videoHeight}` : '检测中';
                     document.getElementById('v-details').innerText = `正在播放：${currentVod.vod_name} - ${epName} | 清晰度：${res} | 缓冲：${(player.bufferedEnd()-now).toFixed(1)}s`;
                 }
 
-                // 自动连播
                 if(settings.auto && duration > 0 && (duration - now <= (settings.end || 0) + 1)) {
                     playNext();
                 }
@@ -254,14 +279,12 @@
     }
     
     async function switchSource(url) {
-        const oldDetails = document.getElementById('v-details').innerText;
-        document.getElementById('v-details').innerText = "🔄 正在匹配目标源资源，请稍后...";
-        const d = await smartFetch(`${url}${url.includes('?')?'&':'?'}ac=detail&wd=${encodeURIComponent(currentVod.vod_name)}`);
+        document.getElementById('v-details').innerText = "🔄 正在跨源匹配资源...";
+        const d = await smartFetch(url, `ac=detail&wd=${encodeURIComponent(currentVod.vod_name)}`);
         if(d && d.list && d.list.length > 0) {
             reqDetail(url, d.list[0].vod_id);
         } else {
-            alert("该源无匹配资源");
-            document.getElementById('v-details').innerText = oldDetails;
+            alert("该源未搜索到同名资源");
         }
     }
 
@@ -291,7 +314,7 @@
         if(curIdx > -1 && curIdx < eps.length - 1) {
             const next = eps[curIdx + 1];
             play(next.u, next.n);
-            setTimeout(renderRange, 500); // 刷新界面集数状态
+            setTimeout(renderRange, 500);
         }
     }
 
@@ -307,56 +330,66 @@
     function toggleModal(s) { document.getElementById('mgr-modal').style.display = s?'flex':'none'; if(s) renderMgr(); }
     function renderMgr() { document.getElementById('api-mgr-list').innerHTML = apiList.map((a, i) => `<div style="padding:10px; display:flex; justify-content:space-between; border-bottom:1px solid #eee;"><span>${a.name} (${a.delay||'--'}ms)</span><span style="color:red; cursor:pointer;" onclick="apiList.splice(${i},1);renderMgr();localStorage.setItem('joe_v21_apis',JSON.stringify(apiList))">删除</span></div>`).join(''); }
     
+    // 增强版批量添加
     async function batchAdd() {
-        const lines = document.getElementById('api-input').value.split('\n').filter(l => l.includes('http'));
+        const btn = event.target;
+        btn.innerText = "正在检测中...";
+        const lines = document.getElementById('api-input').value.split('\n').filter(l => l.trim().startsWith('http'));
+        
         for(let l of lines) {
-            const d = await smartFetch(l.trim()+(l.includes('?')?'&':'?')+'ac=list');
+            const clean = l.trim();
+            // 尝试获取列表
+            const d = await smartFetch(clean, 'ac=list');
             if(d) {
-                const item = {name: d.name, url: l.trim(), delay: d.delay};
+                const item = {name: d.name, url: clean, delay: d.delay};
                 const idx = apiList.findIndex(a => a.url === item.url);
                 if(idx > -1) apiList[idx] = item; else apiList.push(item);
+                renderMgr(); // 实时显示进度
             }
         }
         apiList.sort((a,b) => (a.delay || 9999) - (b.delay || 9999));
         localStorage.setItem('joe_v21_apis', JSON.stringify(apiList));
-        location.reload();
+        btn.innerText = "检测完成！";
+        setTimeout(() => location.reload(), 1000);
     }
 
     function exportConfig() {
         const data = { apis: apiList, his: history, set: settings };
         document.getElementById('api-input').value = btoa(encodeURIComponent(JSON.stringify(data)));
-        alert("配置已导出");
+        alert("配置码已生成在文本框，请复制保存");
     }
 
     function importConfig() {
         try {
-            const data = JSON.parse(decodeURIComponent(atob(document.getElementById('api-input').value.trim())));
+            const val = document.getElementById('api-input').value.trim();
+            const data = JSON.parse(decodeURIComponent(atob(val)));
             localStorage.setItem('joe_v21_apis', JSON.stringify(data.apis));
             localStorage.setItem('joe_v21_his', JSON.stringify(data.his || {}));
             localStorage.setItem('joe_v21_set', JSON.stringify(data.set || {}));
             location.reload();
-        } catch(e) { alert("配置无效"); }
+        } catch(e) { alert("配置码格式错误"); }
     }
 
-    function closePlayer() { if(player) player.pause(); document.getElementById('player-page').style.display='none'; route(currentT || 'home'); }
+    function closePlayer() { if(player) player.pause(); document.getElementById('player-page').style.display='none'; }
     function clearHistory() { if(confirm('清空记录？')) { history = {}; localStorage.setItem('joe_v21_his', '{}'); renderHistory(); } }
     
     async function route(id, el) {
         if(el) { document.querySelectorAll('.nav div').forEach(d => d.classList.remove('active')); el.classList.add('active'); }
-        currentT = id === 'home' ? '' : id;
+        currentT = (id === 'home' || !id) ? '' : id;
         renderHistory();
         const view = document.getElementById('main-view');
-        view.innerHTML = `<div style="text-align:center; padding:50px;">📡 正在获取推荐...</div>`;
+        view.innerHTML = `<div style="text-align:center; padding:50px;">📡 正在获取推荐资源...</div>`;
         if(!apiList.length) return view.innerHTML = `<div style="text-align:center; padding:50px;">请点击右上角配置添加线路</div>`;
         
-        const data = await smartFetch(`${apiList[0].url}${apiList[0].url.includes('?')?'&':'?'}ac=detail&t=${currentT}`);
-        if(data && data.list) {
-            view.innerHTML = `<div class="section-h">${id==='home'?'🔥 热门推荐':'🎬 结果列表'}</div><div class="grid">${data.list.map(v => {
+        // 使用最快的源进行首页推荐
+        const d = await smartFetch(apiList[0].url, `ac=detail&t=${currentT}`);
+        if(d && d.list) {
+            view.innerHTML = `<div class="section-h">${id==='home'?'🔥 热门推荐':'🎬 结果列表'}</div><div class="grid">${d.list.map(v => {
                 const h = history[v.vod_name] ? `<div class="his-tag">📍 ${history[v.vod_name].ep}</div>` : '';
                 return `<div class="card" onclick="reqDetail('${apiList[0].url}','${v.vod_id}')"><img src="${v.vod_pic}" onerror="this.src='https://via.placeholder.com/200x300?text=No+Pic'">${h}<div class="info">${v.vod_name}</div></div>`;
             }).join('')}</div>`;
         } else {
-            view.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">主源加载失败，请在设置中通过“测速”切换备用源。</div>`;
+            view.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">当前源加载失败，请通过“配置”删除失效源或等待自动切换。</div>`;
         }
     }
     window.onload = () => route('home');
