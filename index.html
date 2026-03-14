@@ -4,103 +4,116 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>JOE TV V22.01 | 修复增强版</title>
+    <title>JOE TV V22.02 | 极速增强版</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
-        :root { --main: #6c5ce7; --bg: #f4f7f6; --text: #2d3436; }
-        body { margin: 0; background: var(--bg); color: var(--text); font-family: sans-serif; overflow-x: hidden; }
+        :root { --main: #6c5ce7; --bg: #f4f7f6; --text: #2d3436; --error: #ff7675; --success: #00b894; }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; overflow-x: hidden; }
         header { position: sticky; top: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); display: flex; align-items: center; padding: 10px 20px; z-index: 1000; border-bottom: 1px solid #ddd; }
-        .logo { font-size: 20px; font-weight: bold; color: var(--main); margin-right: 20px; cursor: pointer; }
+        .logo { font-size: 20px; font-weight: bold; color: var(--main); margin-right: 20px; cursor: pointer; letter-spacing: -1px; }
         .nav { display: flex; gap: 8px; flex: 1; overflow-x: auto; scrollbar-width: none; }
-        .nav div { padding: 6px 15px; border-radius: 20px; cursor: pointer; font-size: 13px; background: #eee; white-space: nowrap; font-weight: bold; }
+        .nav div { padding: 6px 15px; border-radius: 20px; cursor: pointer; font-size: 13px; background: #eee; white-space: nowrap; font-weight: bold; transition: 0.2s; }
         .nav .active { background: var(--main); color: #fff; }
-        .search-box input { padding: 8px 15px; border-radius: 20px; border: 1px solid #ddd; outline: none; width: 220px; }
+        .search-box input { padding: 8px 18px; border-radius: 20px; border: 2px solid #eee; outline: none; width: 220px; transition: 0.3s; }
+        .search-box input:focus { border-color: var(--main); width: 280px; }
 
         .container { max-width: 1600px; margin: 20px auto; padding: 0 15px; }
         .section-h { font-size: 18px; font-weight: bold; margin: 25px 0 15px; display: flex; align-items: center; justify-content: space-between; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
-        .card { background: #fff; border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.2s; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .card:hover { transform: translateY(-5px); }
-        .card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #eee; }
-        .card .info { padding: 8px; text-align: center; font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 18px; }
+        .card { background: #fff; border-radius: 12px; overflow: hidden; cursor: pointer; transition: 0.3s; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(108, 92, 231, 0.2); }
+        .card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #f0f0f0; }
+        .card .info { padding: 10px; text-align: center; font-size: 13px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        .source-tag { position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.6); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
-        .his-tag { position: absolute; top: 5px; right: 5px; background: var(--main); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+        .source-tag { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7); color: #fff; font-size: 10px; padding: 3px 8px; border-radius: 6px; backdrop-filter: blur(4px); }
+        .his-tag { position: absolute; top: 8px; right: 8px; background: var(--main); color: #fff; font-size: 10px; padding: 3px 8px; border-radius: 6px; }
 
         .history-row { display: flex; gap: 15px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
-        .history-item { min-width: 160px; background: #fff; border-radius: 8px; overflow: hidden; cursor: pointer; border: 1px solid #eee; }
+        .history-item { min-width: 180px; background: #fff; border-radius: 10px; overflow: hidden; cursor: pointer; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .history-item img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
-        .history-item .h-title { padding: 5px; font-size: 11px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .history-item .h-title { padding: 8px; font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        #player-page { position: fixed; inset: 0; background: #f4f4f4; z-index: 2000; display: none; overflow-y: auto; }
-        .p-layout { display: grid; grid-template-columns: 1fr 380px; gap: 20px; padding: 20px; max-width: 1600px; margin: 0 auto; }
-        .v-box { background: #000; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; position: relative; z-index: 2001; }
-        #v-details { position: absolute; top: 15px; left: 15px; color: #fff; background: rgba(0,0,0,0.7); padding: 8px 15px; font-size: 12px; z-index: 2100; border-radius: 6px; pointer-events: none; border-left: 4px solid var(--main); }
+        #player-page { position: fixed; inset: 0; background: #f8f9fa; z-index: 2000; display: none; overflow-y: auto; }
+        .p-layout { display: grid; grid-template-columns: 1fr 400px; gap: 20px; padding: 20px; max-width: 1600px; margin: 0 auto; }
+        @media (max-width: 1000px) { .p-layout { grid-template-columns: 1fr; } }
+        .v-box { background: #000; aspect-ratio: 16/9; border-radius: 15px; overflow: hidden; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        #v-details { position: absolute; bottom: 60px; left: 20px; color: #fff; background: rgba(0,0,0,0.6); padding: 6px 15px; font-size: 12px; z-index: 2100; border-radius: 20px; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.2); pointer-events: none; }
         
-        .side-panel { background: #fff; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #eee; }
-        .panel-title { padding: 12px; font-weight: bold; background: #f8f9fa; border-bottom: 1px solid #eee; }
-        .tab-bar { display: flex; gap: 8px; padding: 10px; background: #fff; border-bottom: 1px solid #eee; overflow-x: auto; }
-        .tab-item { padding: 5px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 11px; cursor: pointer; white-space: nowrap; }
-        .tab-item.active { background: var(--main); color: #fff; border-color: var(--main); }
+        .side-panel { background: #fff; border-radius: 15px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #eee; height: fit-content; }
+        .panel-title { padding: 15px; font-weight: bold; background: #f8f9fa; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        .tab-bar { display: flex; gap: 8px; padding: 12px; background: #fff; border-bottom: 1px solid #eee; overflow-x: auto; scrollbar-width: none; }
+        .tab-item { padding: 6px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 12px; cursor: pointer; white-space: nowrap; transition: 0.2s; }
+        .tab-item.active { background: var(--main); color: #fff; border-color: var(--main); box-shadow: 0 4px 10px rgba(108, 92, 231, 0.3); }
         
-        .ep-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 15px; max-height: 400px; overflow-y: auto; }
-        .ep-btn { background: #f1f5f9; padding: 10px 0; text-align: center; font-size: 12px; border-radius: 6px; cursor: pointer; }
-        .ep-btn.active { background: var(--main); color: #fff; }
+        .ep-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; padding: 15px; max-height: 500px; overflow-y: auto; }
+        .ep-btn { background: #f1f5f9; padding: 12px 0; text-align: center; font-size: 13px; border-radius: 8px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+        .ep-btn:hover { background: #e2e8f0; }
+        .ep-btn.active { background: var(--main); color: #fff; font-weight: bold; }
 
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 3000; backdrop-filter: blur(4px); }
-        .modal-body { background: #fff; width: 450px; padding: 25px; border-radius: 15px; }
-        textarea { width: 100%; height: 100px; margin: 10px 0; border-radius: 8px; padding: 10px; box-sizing: border-box; font-family: monospace; }
-        .mgr-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .mgr-btn { padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 3000; backdrop-filter: blur(8px); }
+        .modal-body { background: #fff; width: 90%; max-width: 600px; padding: 30px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+        .api-manager-list { max-height: 250px; overflow-y: auto; border: 1px solid #eee; margin: 15px 0; border-radius: 10px; background: #fafafa; }
+        .api-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 13px; }
+        .api-item:last-child { border-bottom: none; }
+        .api-status { font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
+        .status-good { background: #e6fffa; color: #00b894; }
+        .status-bad { background: #fff5f5; color: #ff7675; }
+
+        textarea { width: 100%; height: 100px; margin: 10px 0; border-radius: 10px; padding: 12px; box-sizing: border-box; font-family: monospace; border: 1px solid #ddd; outline: none; focus: border-color: var(--main); resize: none; }
+        .mgr-btns { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .mgr-btn { padding: 12px; border: none; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.2s; text-align: center; }
+        .mgr-btn:active { transform: scale(0.98); }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="logo" onclick="location.reload()">JOE TV V22.01</div>
+    <div class="logo" onclick="location.reload()">JOE TV V22.02</div>
     <div class="nav" id="main-nav">
         <div class="active" onclick="route('home', this)">🏠 首页</div>
         <div onclick="route('1', this)">电影</div>
         <div onclick="route('2', this)">剧集</div>
         <div onclick="route('3', this)">综艺</div>
         <div onclick="route('4', this)">动漫</div>
-        <div style="background:#fff3e0!important;color:#e65100!important" onclick="toggleModal(true)">⚙️ 配置/测速</div>
+        <div style="background:var(--main)!important;color:#fff!important" onclick="toggleModal(true)">⚙️ 订阅管理</div>
     </div>
     <div class="search-box">
-        <input type="text" id="kw" placeholder="搜索资源..." onkeydown="if(event.keyCode==13) handleQuickIn()">
+        <input type="text" id="kw" placeholder="输入关键词搜索..." onkeydown="if(event.keyCode==13) handleQuickIn()">
     </div>
 </header>
 
 <div class="container">
     <div id="history-section" style="display:none;">
-        <div class="section-h">🎬 观看记录 <span onclick="clearHistory()" style="font-size:12px; color:#999; cursor:pointer;">[清空]</span></div>
+        <div class="section-h">🎬 最近观看 <span onclick="clearHistory()" style="font-size:12px; color:#999; cursor:pointer;">[清空记录]</span></div>
         <div class="history-row" id="history-row"></div>
     </div>
     <div id="main-view"></div>
 </div>
 
 <div id="player-page">
-    <div style="padding:15px 20px; color:var(--main); cursor:pointer; font-weight:bold;" onclick="closePlayer()">🔙 返回列表</div>
+    <div style="padding:15px 20px; color:var(--main); cursor:pointer; font-weight:bold; display:flex; align-items:center;" onclick="closePlayer()">
+        <span style="font-size:20px; margin-right:5px;">←</span> 返回列表
+    </div>
     <div class="p-layout">
         <div class="p-main">
             <div class="v-box" id="full-v-box">
-                <div id="v-details">正在准备播放环境...</div>
+                <div id="v-details">初始化播放引擎...</div>
                 <div id="v-wrapper"></div>
             </div>
-            <div style="background:#fff; padding:20px; margin-top:20px; border-radius:12px; border:1px solid #eee;">
-                <h3 id="v-title" style="margin:0 0 10px 0;"></h3>
-                <div style="font-size:13px; color:#666; display:flex; gap:15px; align-items:center; flex-wrap: wrap;">
-                    <span>跳过片头 <input type="number" id="set-start" style="width:50px" onchange="saveSettings()"> 秒</span>
-                    <span>跳过片尾 <input type="number" id="set-end" style="width:50px" onchange="saveSettings()"> 秒</span>
-                    <label><input type="checkbox" id="set-auto" checked onchange="saveSettings()"> 自动连播</label>
+            <div style="background:#fff; padding:25px; margin-top:20px; border-radius:15px; border:1px solid #eee; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
+                <h2 id="v-title" style="margin:0 0 15px 0; font-size: 22px;"></h2>
+                <div style="font-size:14px; color:#666; display:flex; gap:20px; align-items:center; flex-wrap: wrap; background: #f8f9fa; padding: 12px; border-radius: 10px;">
+                    <span>🚀 跳过片头 <input type="number" id="set-start" style="width:50px; border:1px solid #ddd; padding:2px 5px; border-radius:4px" onchange="saveSettings()"> 秒</span>
+                    <span>🏁 跳过片尾 <input type="number" id="set-end" style="width:50px; border:1px solid #ddd; padding:2px 5px; border-radius:4px" onchange="saveSettings()"> 秒</span>
+                    <label style="cursor:pointer"><input type="checkbox" id="set-auto" checked onchange="saveSettings()"> 自动连播下一集</label>
                 </div>
-                <p id="v-info" style="font-size:13px; color:#666; margin-top:15px; border-top:1px solid #eee; padding-top:15px; line-height:1.6;"></p>
+                <div id="v-info" style="font-size:14px; color:#444; margin-top:20px; line-height:1.8; color: #636e72;"></div>
             </div>
         </div>
         <div class="side-panel">
-            <div class="panel-title">📡 线路切换 (同步资源)</div>
+            <div class="panel-title">📡 线路源 (已自动匹配)</div>
             <div class="tab-bar" id="api-tabs"></div>
-            <div class="panel-title">🔢 选集播放</div>
+            <div class="panel-title">🔢 选集 <span>共 <span id="ep-count">0</span> 集</span></div>
             <div class="tab-bar" id="range-tabs"></div>
             <div class="ep-grid" id="ep-grid"></div>
         </div>
@@ -109,14 +122,15 @@
 
 <div id="mgr-modal" class="modal">
     <div class="modal-body">
-        <h3>配置与测速 V22.01</h3>
-        <div id="api-mgr-list" style="max-height:120px; overflow-y:auto; border:1px solid #eee; margin-bottom:10px; font-size:12px; background: #fafafa;"></div>
-        <textarea id="api-input" placeholder="粘贴线路URL（每行一个）或Base64配置码..."></textarea>
+        <h3 style="margin-top:0">订阅管理 & 测速</h3>
+        <p style="font-size: 12px; color: #999;">管理您的数据源，点击“删除”可移除失效线路。</p>
+        <div class="api-manager-list" id="api-mgr-list"></div>
+        <textarea id="api-input" placeholder="输入线路地址(URL)，每行一个..."></textarea>
         <div class="mgr-btns">
-            <button class="mgr-btn" style="background:var(--main); color:#fff" onclick="batchAdd()">测速并同步</button>
-            <button class="mgr-btn" style="background:#00b894; color:#fff" onclick="importConfig()">导入配置</button>
-            <button class="mgr-btn" style="background:#34495e; color:#fff" onclick="exportConfig()">导出配置</button>
-            <button class="mgr-btn" style="background:#999; color:#fff" onclick="toggleModal(false)">关闭</button>
+            <button class="mgr-btn" style="background:var(--main); color:#fff" onclick="batchAdd()">同步并测速</button>
+            <button class="mgr-btn" style="background:var(--success); color:#fff" onclick="importConfig()">导入配置码</button>
+            <button class="mgr-btn" style="background:#34495e; color:#fff" onclick="exportConfig()">导出配置码</button>
+            <button class="mgr-btn" style="background:#999; color:#fff" onclick="toggleModal(false)">关闭窗口</button>
         </div>
     </div>
 </div>
@@ -128,11 +142,11 @@
     let settings = JSON.parse(localStorage.getItem('joe_v21_set') || '{"start":0,"end":0,"auto":true}');
     let currentVod = null, currentApi = '', currentT = '', currentEpName = '';
 
-    // 核心抓取函数 - 修复了兼容性
+    // 核心网络请求
     async function smartFetch(url) {
         const start = Date.now();
         const controller = new AbortController();
-        const tid = setTimeout(() => controller.abort(), 8000); // 8秒超时
+        const tid = setTimeout(() => controller.abort(), 10000); 
 
         try {
             const res = await fetch(url, { signal: controller.signal });
@@ -158,7 +172,6 @@
             const json = JSON.parse(text);
             return { name: json.source?.name || url.split('/')[2], list: json.list || [], delay };
         } catch(e) { 
-            console.error("Fetch Error:", e);
             return null; 
         }
     }
@@ -169,25 +182,33 @@
         else { doGlobalSearch(); }
     }
 
+    // 优化后的搜索：严格匹配关键词权重
     async function doGlobalSearch() {
         const kw = document.getElementById('kw').value.trim();
         if(!kw) return;
         const view = document.getElementById('main-view');
-        view.innerHTML = `<div class="section-h">🔍 深度搜索中：${kw}</div><div class="grid" id="search-res"></div>`;
+        view.innerHTML = `<div class="section-h">🔍 正在深度检索：${kw}</div><div class="grid" id="search-res"></div>`;
         
-        for(const api of apiList) {
+        const tasks = apiList.map(async (api) => {
             const connector = api.url.includes('?') ? '&' : '?';
-            smartFetch(`${api.url}${connector}ac=detail&wd=${encodeURIComponent(kw)}`).then(d => {
-                if(d && d.list && d.list.length > 0) {
+            const d = await smartFetch(`${api.url}${connector}ac=detail&wd=${encodeURIComponent(kw)}`);
+            if(d && d.list) {
+                // 过滤与关键词不符的内容
+                const filtered = d.list.filter(item => item.vod_name.includes(kw));
+                if(filtered.length > 0) {
                     const grid = document.getElementById('search-res');
-                    grid.innerHTML += d.list.map(v => `
+                    grid.innerHTML += filtered.map(v => `
                         <div class="card" onclick="reqDetail('${api.url}','${v.vod_id}')">
                             <div class="source-tag">${api.name}</div>
-                            <img src="${v.vod_pic}" onerror="this.src='https://via.placeholder.com/200x300?text=No+Pic'">
+                            <img src="${v.vod_pic}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x300?text=暂无封面'">
                             <div class="info">${v.vod_name}</div>
                         </div>`).join('');
                 }
-            });
+            }
+        });
+        await Promise.all(tasks);
+        if(document.getElementById('search-res').innerHTML === "") {
+            view.innerHTML = `<div style="text-align:center; padding:100px; color:#999;">未找到与“${kw}”相关的结果，请更换关键词或检查接口。</div>`;
         }
     }
 
@@ -200,7 +221,7 @@
             hRow.innerHTML = hList.map(h => `
                 <div class="history-item" onclick="reqDetail('${h.apiUrl}','${h.id}')">
                     <img src="${h.pic}"><div class="h-title">${h.name}</div>
-                    <div style="font-size:10px; color:var(--main); padding:0 8px 5px;">📍 ${h.ep}</div>
+                    <div style="font-size:10px; color:var(--main); padding:0 8px 8px;">📍 已看到：${h.ep}</div>
                 </div>`).join('');
         } else hSec.style.display = 'none';
     }
@@ -208,13 +229,13 @@
     async function reqDetail(apiUrl, id) {
         currentApi = apiUrl;
         const connector = apiUrl.includes('?') ? '&' : '?';
+        document.getElementById('v-details').innerText = "⚡ 正在加速加载资源详情...";
         const data = await smartFetch(`${apiUrl}${connector}ac=detail&ids=${id}`);
         if(!data || !data.list.length) { alert("该源响应超时，请尝试切换线路"); return; }
         
         currentVod = data.list[0]; 
         currentVod.id = id;
         
-        // 处理播放地址
         const raw = (currentVod.vod_play_url || "").split('$$$')[0].split('#');
         currentVod.eps = raw.filter(e => e.includes('$')).map(e => { 
             const p = e.split('$'); 
@@ -223,11 +244,9 @@
 
         document.getElementById('player-page').style.display = 'block';
         document.getElementById('v-title').innerText = currentVod.vod_name;
-        document.getElementById('v-info').innerText = currentVod.vod_content?.replace(/<[^>]+>/g, '') || '暂无内容简介';
-        document.getElementById('set-start').value = settings.start;
-        document.getElementById('set-end').value = settings.end;
-        document.getElementById('set-auto').checked = settings.auto;
-
+        document.getElementById('v-info').innerHTML = currentVod.vod_content || '暂无内容简介';
+        document.getElementById('ep-count').innerText = currentVod.eps.length;
+        
         renderApiTabs(); 
         renderRange();
         
@@ -255,7 +274,8 @@
             autoplay: true, 
             controls: true,
             fluid: true,
-            playbackRates: [0.5, 1, 1.25, 1.5, 2]
+            playbackRates: [0.5, 1, 1.25, 1.5, 2],
+            html5: { hls: { overrideNative: true }, nativeAudioTracks: false, nativeVideoTracks: false }
         });
 
         player.src({ src: url, type: 'application/x-mpegURL' });
@@ -268,21 +288,16 @@
                 const now = player.currentTime();
                 const duration = player.duration();
                 
-                // 实时更新历史
                 history[currentVod.vod_name] = { 
                     name: currentVod.vod_name, id: currentVod.id, pic: currentVod.vod_pic, 
                     apiUrl: currentApi, ep: epName, time: now, date: Date.now() 
                 };
                 localStorage.setItem('joe_v21_his', JSON.stringify(history));
                 
-                // 状态栏
                 if(Math.floor(now) % 2 === 0) {
-                    const vid = document.querySelector('video');
-                    const res = vid ? `${vid.videoWidth}x${vid.videoHeight}` : '...';
-                    document.getElementById('v-details').innerText = `正在播放：${epName} | 分辨率：${res} | 进度：${Math.floor(now/60)}:${(Math.floor(now)%60).toString().padStart(2,'0')}`;
+                    document.getElementById('v-details').innerText = `正在播放：${epName} | 进度：${Math.floor(now/60)}分${(Math.floor(now)%60).toString().padStart(2,'0')}秒`;
                 }
 
-                // 连播逻辑
                 if(settings.auto && duration > 0 && (duration - now <= (parseInt(settings.end) || 0) + 1)) {
                     playNext();
                 }
@@ -290,7 +305,7 @@
         });
         
         player.on('error', () => {
-            document.getElementById('v-details').innerText = "⚠️ 播放失败，请尝试切换线路或稍后重试";
+            document.getElementById('v-details').innerText = "⚠️ 加载失败，请尝试下方线路切换或刷新页面";
         });
     }
 
@@ -300,7 +315,7 @@
     }
     
     async function switchSource(url) {
-        document.getElementById('v-details').innerText = "🔄 正在跨源匹配资源...";
+        document.getElementById('v-details').innerText = "🔄 正在跨线路匹配资源，请稍后...";
         const connector = url.includes('?') ? '&' : '?';
         const d = await smartFetch(`${url}${connector}ac=detail&wd=${encodeURIComponent(currentVod.vod_name)}`);
         if(d && d.list && d.list.length > 0) {
@@ -357,19 +372,39 @@
     function toggleModal(s) { document.getElementById('mgr-modal').style.display = s?'flex':'none'; if(s) renderMgr(); }
     
     function renderMgr() { 
-        document.getElementById('api-mgr-list').innerHTML = apiList.map((a, i) => `
-            <div style="padding:10px; display:flex; justify-content:space-between; border-bottom:1px solid #eee;">
-                <span>${a.name} <small style="color:#999">${a.delay||'--'}ms</small></span>
-                <span style="color:red; cursor:pointer;" onclick="apiList.splice(${i},1);renderMgr();localStorage.setItem('joe_v21_apis',JSON.stringify(apiList))">删除</span>
-            </div>`).join(''); 
+        const container = document.getElementById('api-mgr-list');
+        if(!apiList.length) {
+            container.innerHTML = `<div style="padding:20px;text-align:center;color:#999">暂无订阅地址，请在下方添加</div>`;
+            return;
+        }
+        container.innerHTML = apiList.map((a, i) => {
+            const isGood = a.delay && a.delay < 5000;
+            return `
+            <div class="api-item">
+                <div>
+                    <strong>${a.name}</strong>
+                    <span class="api-status ${isGood?'status-good':'status-bad'}">${isGood?a.delay+'ms':'超时'}</span>
+                    <div style="font-size:10px; color:#999; margin-top:2px;">${a.url}</div>
+                </div>
+                <span style="color:var(--error); cursor:pointer; font-weight:bold;" onclick="deleteApi(${i})">删除</span>
+            </div>`;
+        }).join(''); 
+    }
+
+    function deleteApi(i) {
+        if(confirm('确定删除该线路吗？')) {
+            apiList.splice(i, 1);
+            localStorage.setItem('joe_v21_apis', JSON.stringify(apiList));
+            renderMgr();
+        }
     }
     
     async function batchAdd() {
         const input = document.getElementById('api-input').value.trim();
         const lines = input.split('\n').filter(l => l.includes('http'));
-        if(!lines.length) return alert("请在下方输入框输入有效的 http 接口地址");
+        if(!lines.length) return alert("请输入有效的线路URL地址");
 
-        document.getElementById('api-input').value = "正在测速，请稍后...";
+        document.getElementById('api-input').value = "🚀 正在全速同步并测速，请稍候...";
         
         for(let l of lines) {
             const url = l.trim();
@@ -383,7 +418,7 @@
         }
         apiList.sort((a,b) => (a.delay || 9999) - (b.delay || 9999));
         localStorage.setItem('joe_v21_apis', JSON.stringify(apiList));
-        alert("测速同步完成！");
+        alert("同步完成！已为您挑选响应最快的线路。");
         location.reload();
     }
 
@@ -391,7 +426,7 @@
         const data = { apis: apiList, his: history, set: settings };
         const code = btoa(encodeURIComponent(JSON.stringify(data)));
         document.getElementById('api-input').value = code;
-        alert("配置码已生成在输入框，请复制保存。");
+        alert("配置码已导出，请复制保存。");
     }
 
     function importConfig() {
@@ -402,10 +437,10 @@
                 localStorage.setItem('joe_v21_apis', JSON.stringify(data.apis));
                 localStorage.setItem('joe_v21_his', JSON.stringify(data.his || {}));
                 localStorage.setItem('joe_v21_set', JSON.stringify(data.set || {}));
-                alert("导入成功！");
+                alert("配置导入成功！");
                 location.reload();
             }
-        } catch(e) { alert("配置码格式无效，请检查！"); }
+        } catch(e) { alert("配置码格式错误，请重新输入"); }
     }
 
     function closePlayer() { 
@@ -414,7 +449,7 @@
         renderHistory();
     }
 
-    function clearHistory() { if(confirm('确定要清空所有观看记录吗？')) { history = {}; localStorage.setItem('joe_v21_his', '{}'); renderHistory(); } }
+    function clearHistory() { if(confirm('确定清空所有历史记录？')) { history = {}; localStorage.setItem('joe_v21_his', '{}'); renderHistory(); } }
     
     async function route(id, el) {
         if(el) { 
@@ -424,10 +459,13 @@
         currentT = id === 'home' ? '' : id;
         renderHistory();
         const view = document.getElementById('main-view');
-        view.innerHTML = `<div style="text-align:center; padding:100px; color:#999;">📡 正在拉取源数据...</div>`;
+        view.innerHTML = `<div style="text-align:center; padding:100px; color:#999;">⚡ 正在极速连接数据源...</div>`;
         
         if(!apiList.length) {
-            view.innerHTML = `<div style="text-align:center; padding:100px;">欢迎使用！请点击右上角 [配置] 添加您的首个线路。</div>`;
+            view.innerHTML = `<div style="text-align:center; padding:100px;">
+                <h2>欢迎使用 JOE TV</h2>
+                <p>当前无订阅地址，请点击右上角 [订阅管理] 批量添加接口。</p>
+            </div>`;
             return;
         }
         
@@ -436,17 +474,19 @@
         const data = await smartFetch(`${mainApi.url}${connector}ac=detail&t=${currentT}`);
         
         if(data && data.list) {
-            view.innerHTML = `<div class="section-h">${id==='home'?'🔥 今日推荐':'🎬 频道列表'}</div><div class="grid">${data.list.map(v => {
+            view.innerHTML = `<div class="section-h">${id==='home'?'🔥 今日热门推荐':'🎬 频道资源列表'}</div><div class="grid">${data.list.map(v => {
                 const h = history[v.vod_name] ? `<div class="his-tag">📍 ${history[v.vod_name].ep}</div>` : '';
                 return `
                     <div class="card" onclick="reqDetail('${mainApi.url}','${v.vod_id}')">
-                        <img src="${v.vod_pic}" onerror="this.src='https://via.placeholder.com/200x300?text=No+Pic'">
+                        <img src="${v.vod_pic}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x300?text=暂无封面'">
                         ${h}
                         <div class="info">${v.vod_name}</div>
                     </div>`;
             }).join('')}</div>`;
         } else {
-            view.innerHTML = `<div style="text-align:center; padding:100px; color:#ff7675;">主线路无法连接，请在设置中“测速”或删除该无效线路。</div>`;
+            view.innerHTML = `<div style="text-align:center; padding:100px; color:var(--error);">
+                当前主线路 [${mainApi.name}] 无法连接，请在订阅管理中测速并调整顺序。
+            </div>`;
         }
     }
 
